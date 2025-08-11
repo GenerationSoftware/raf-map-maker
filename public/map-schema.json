@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Game Map Schema",
+  "description": "Schema for game map tree structure with monsters and rooms",
+  "type": "object",
+  "required": ["id", "depth", "roomType", "doorCount", "children"],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Unique identifier for the node"
+    },
+    "depth": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Depth level of the node in the tree"
+    },
+    "roomType": {
+      "type": "string",
+      "enum": ["ROOT", "MONSTER"],
+      "description": "Type of room - ROOT for the starting node, MONSTER for all others"
+    },
+    "doorCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4,
+      "description": "Number of doors/children this node has"
+    },
+    "monsterIndex1": {
+      "type": ["string", "null"],
+      "enum": ["GOBLIN", "THICC_GOBLIN", "TROLL", "ORC", null],
+      "description": "Type of monster in this room (null for ROOT nodes)"
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "$ref": "#"
+      },
+      "description": "Array of child nodes"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "roomType": { "const": "ROOT" }
+        }
+      },
+      "then": {
+        "properties": {
+          "monsterIndex1": { "const": null },
+          "depth": { "const": 0 }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "roomType": { "const": "MONSTER" }
+        }
+      },
+      "then": {
+        "properties": {
+          "monsterIndex1": {
+            "type": "string",
+            "enum": ["GOBLIN", "THICC_GOBLIN", "TROLL", "ORC"]
+          },
+          "depth": { "minimum": 1 }
+        },
+        "required": ["monsterIndex1"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "children": {
+            "type": "array",
+            "minItems": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "doorCount": {
+            "minimum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "children": {
+            "type": "array",
+            "maxItems": 0
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "doorCount": {
+            "const": 0
+          }
+        }
+      }
+    }
+  ]
+}
