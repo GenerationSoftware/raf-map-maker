@@ -101,7 +101,7 @@ export default function MapEditor() {
       calculateNodePositions(root);
     }
     
-    setRoot({ ...root });
+    setRoot(root);
   };
 
   const zoomIn = () => {
@@ -181,7 +181,7 @@ export default function MapEditor() {
     return Math.max(node.id, ...childIds, 0);
   };
 
-  const renderNode = (node: MapNode): JSX.Element => {
+  const renderNode = (node: MapNode): React.ReactElement => {
     const getNodeClass = () => {
       if (node.roomType === 'ROOT') return 'nodeRoot';
       const monsterClass = node.monsterIndex1?.toLowerCase().replace('_', '-') || 'monster';
