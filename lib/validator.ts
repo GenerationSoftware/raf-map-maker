@@ -33,9 +33,11 @@ export class MapValidator {
     }
 
     // Validate monster type
+    const validMonsters = ['GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
+    
     if (node.roomType === 'ROOT') {
-      if (node.monsterIndex1 !== null) {
-        this.errors.push(`${path}: ROOT nodes must have null monsterIndex1`);
+      if (node.monsterIndex1 !== null && !validMonsters.includes(node.monsterIndex1 as string)) {
+        this.errors.push(`${path}: ROOT nodes must have valid monsterIndex1 or null`);
         valid = false;
       }
       if (node.depth !== 0) {
@@ -43,7 +45,6 @@ export class MapValidator {
         valid = false;
       }
     } else if (node.roomType === 'MONSTER') {
-      const validMonsters = ['GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
       if (!validMonsters.includes(node.monsterIndex1 as string)) {
         this.errors.push(`${path}: MONSTER nodes must have valid monsterIndex1`);
         valid = false;

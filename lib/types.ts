@@ -27,7 +27,7 @@ export class MapNode {
     this.depth = depth;
     this.roomType = isRoot ? 'ROOT' : 'MONSTER';
     this.doorCount = Math.floor(Math.random() * 4) + 1;
-    this.monsterIndex1 = isRoot ? null : this.getRandomMonster(depth, maxDepth);
+    this.monsterIndex1 = this.getRandomMonster(depth, maxDepth);
     this.children = [];
     this.parent = null;
     this.x = 0;

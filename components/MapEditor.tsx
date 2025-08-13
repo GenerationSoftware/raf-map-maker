@@ -92,9 +92,7 @@ export default function MapEditor() {
   const applyNodeChanges = () => {
     if (!selectedNode || !root) return;
 
-    if (selectedNode.roomType !== 'ROOT') {
-      selectedNode.monsterIndex1 = monsterType;
-    }
+    selectedNode.monsterIndex1 = monsterType;
 
     if (doorCount !== selectedNode.doorCount) {
       selectedNode.updateDoorCount(doorCount, maxDepth, nodeIdCounter.current);
@@ -328,24 +326,22 @@ export default function MapEditor() {
                 <option value={4}>4</option>
               </select>
             </div>
-            {selectedNode.roomType !== 'ROOT' && (
-              <div className={styles.editorField}>
-                <label className={styles.editorLabel} htmlFor="monsterSelect">
-                  Monster Type:
-                </label>
-                <select
-                  id="monsterSelect"
-                  className={styles.select}
-                  value={monsterType}
-                  onChange={(e) => setMonsterType(e.target.value as MonsterType)}
-                >
-                  <option value="GOBLIN">Goblin</option>
-                  <option value="THICC_GOBLIN">Thicc Goblin</option>
-                  <option value="TROLL">Troll</option>
-                  <option value="ORC">Orc</option>
-                </select>
-              </div>
-            )}
+            <div className={styles.editorField}>
+              <label className={styles.editorLabel} htmlFor="monsterSelect">
+                Monster Type:
+              </label>
+              <select
+                id="monsterSelect"
+                className={styles.select}
+                value={monsterType}
+                onChange={(e) => setMonsterType(e.target.value as MonsterType)}
+              >
+                <option value="GOBLIN">Goblin</option>
+                <option value="THICC_GOBLIN">Thicc Goblin</option>
+                <option value="TROLL">Troll</option>
+                <option value="ORC">Orc</option>
+              </select>
+            </div>
             <button 
               className={`${styles.button} ${styles.applyButton}`}
               onClick={applyNodeChanges}

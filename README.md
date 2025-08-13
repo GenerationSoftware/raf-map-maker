@@ -38,7 +38,7 @@ npm start
 1. **Generate a Map**: Set the desired depth and click "Generate Map"
 2. **Edit Nodes**: Click any node to select it and modify its properties
 3. **Change Door Count**: Adjusts the number of child nodes (1-4)
-4. **Change Monster Type**: Select different monsters for non-root nodes
+4. **Change Monster Type**: Select different monsters for any node (including root)
 5. **Navigate**: Use zoom controls to view large maps easily
 6. **Save/Load**: Export your map as JSON or import existing maps
 
@@ -49,7 +49,7 @@ Each node in the tree contains:
 - `depth`: Level in the tree (0 for root)
 - `roomType`: Either "ROOT" or "MONSTER"
 - `doorCount`: Number of child nodes (0-4)
-- `monsterIndex1`: Monster type (null for root)
+- `monsterIndex1`: Monster type (can be any monster type or null for root nodes)
 - `children`: Array of child nodes
 
 ## JSON Schema

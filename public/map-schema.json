@@ -30,7 +30,7 @@
     "monsterIndex1": {
       "type": ["string", "null"],
       "enum": ["GOBLIN", "THICC_GOBLIN", "TROLL", "ORC", null],
-      "description": "Type of monster in this room (null for ROOT nodes)"
+      "description": "Type of monster in this room (can be null or a monster type for ROOT nodes)"
     },
     "children": {
       "type": "array",
@@ -49,7 +49,10 @@
       },
       "then": {
         "properties": {
-          "monsterIndex1": { "const": null },
+          "monsterIndex1": {
+            "type": ["string", "null"],
+            "enum": ["GOBLIN", "THICC_GOBLIN", "TROLL", "ORC", null]
+          },
           "depth": { "const": 0 }
         }
       }
