@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './MapEditor.module.css';
-import { MapNode, MapNodeData, MonsterType } from '@/lib/types';
+import { MapNode, MapNodeData } from '@/lib/types';
 import { MapValidator } from '@/lib/validator';
 
 export default function MapEditor() {
@@ -11,7 +11,7 @@ export default function MapEditor() {
   const [selectedNode, setSelectedNode] = useState<MapNode | null>(null);
   const [currentZoom, setCurrentZoom] = useState(1);
   const [doorCount, setDoorCount] = useState(1);
-  const [monsterType, setMonsterType] = useState<MonsterType>('GOBLIN');
+  const [monsterIndex, setMonsterIndex] = useState<number>(1);
   
   const nodeIdCounter = useRef({ value: 1 });
   const nodeElements = useRef(new Map<MapNode, SVGRectElement>());
@@ -84,15 +84,15 @@ export default function MapEditor() {
   const selectNode = (node: MapNode) => {
     setSelectedNode(node);
     setDoorCount(node.doorCount);
-    if (node.monsterIndex1) {
-      setMonsterType(node.monsterIndex1);
-    }
+    setMonsterIndex(node.monsterIndex1 || 1);
   };
 
   const applyNodeChanges = () => {
     if (!selectedNode || !root) return;
 
-    selectedNode.monsterIndex1 = monsterType;
+    if (selectedNode.roomType === 'BATTLE') {
+      selectedNode.monsterIndex1 = monsterIndex;
+    }
 
     if (doorCount !== selectedNode.doorCount) {
       selectedNode.updateDoorCount(doorCount, maxDepth, nodeIdCounter.current);
@@ -121,7 +121,7 @@ export default function MapEditor() {
   const saveJSON = () => {
     if (!root) return;
     
-    const data = JSON.stringify(root.toJSON(), null, 2);
+    const data = JSON.stringify(root.toFlatJSON(), null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -140,19 +140,29 @@ export default function MapEditor() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = JSON.parse(e.target?.result as string) as MapNodeData;
+        const data = JSON.parse(e.target?.result as string);
         
-        // Validate the JSON
-        const isValid = validator.current.validate(data);
-        if (!isValid) {
+        // Validate the JSON against the schema
+        if (!validator.current.validate(data)) {
           const errors = validator.current.getErrors();
-          const errorMessage = 'Invalid map file:\n\n' + errors.slice(0, 5).join('\n');
-          const remainingErrors = errors.length > 5 ? `\n... and ${errors.length - 5} more errors` : '';
-          alert(errorMessage + remainingErrors);
+          alert('Invalid map file:\n' + errors.join('\n'));
           return;
         }
         
-        const newRoot = MapNode.fromJSON(data);
+        let newRoot: MapNode | null = null;
+        
+        if (Array.isArray(data)) {
+          newRoot = MapNode.fromFlatJSON(data as MapNodeData[]);
+        } else {
+          alert('Invalid map file: Expected flat array format');
+          return;
+        }
+        
+        if (!newRoot) {
+          alert('Error loading map: Could not reconstruct tree from data');
+          return;
+        }
+        
         const newMaxDepth = findMaxDepth(newRoot);
         setMaxDepth(newMaxDepth);
         nodeIdCounter.current = { value: findMaxId(newRoot) + 1 };
@@ -180,10 +190,18 @@ export default function MapEditor() {
   };
 
   const renderNode = (node: MapNode): React.ReactElement => {
-    const getNodeClass = () => {
-      if (node.roomType === 'ROOT') return 'nodeRoot';
-      const monsterClass = node.monsterIndex1?.toLowerCase().replace('_', '-') || 'monster';
-      return `node${monsterClass.charAt(0).toUpperCase() + monsterClass.slice(1)}`;
+    const getMonsterName = (index: number): string => {
+      const monsters = ['', 'GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
+      return monsters[index] || '';
+    };
+
+    const getNodeColor = () => {
+      if (node.roomType === 'GOAL') return '#48bb78';
+      if (node.monsterIndex1 === 1) return '#63b3ed';
+      if (node.monsterIndex1 === 2) return '#f6ad55';
+      if (node.monsterIndex1 === 3) return '#fc8181';
+      if (node.monsterIndex1 === 4) return '#b794f4';
+      return '#718096';
     };
 
     return (
@@ -209,25 +227,18 @@ export default function MapEditor() {
             width={120}
             height={50}
             rx={8}
-            className={getNodeClass()}
             strokeWidth={selectedNode?.id === node.id ? 4 : 2}
-            stroke={selectedNode?.id === node.id ? '#1a202c' : undefined}
-            fill={
-              node.roomType === 'ROOT' ? '#48bb78' :
-              node.monsterIndex1 === 'GOBLIN' ? '#63b3ed' :
-              node.monsterIndex1 === 'THICC_GOBLIN' ? '#f6ad55' :
-              node.monsterIndex1 === 'TROLL' ? '#fc8181' :
-              '#b794f4'
-            }
+            stroke={selectedNode?.id === node.id ? '#1a202c' : '#cbd5e0'}
+            fill={getNodeColor()}
           />
           <text y={-5} fill="white" fontSize={12} fontWeight={500} textAnchor="middle">
             {node.roomType}
           </text>
-          <text y={10} fill="white" fontSize={12} fontWeight={500} textAnchor="middle">
-            {node.monsterIndex1 || ''}
+          <text y={10} fill="white" fontSize={11} fontWeight={500} textAnchor="middle">
+            {node.roomType === 'BATTLE' ? getMonsterName(node.monsterIndex1) : ''}
           </text>
           <text y={25} fill="white" fontSize={10} textAnchor="middle">
-            Doors: {node.doorCount}
+            {node.roomType === 'BATTLE' ? `Doors: ${node.doorCount}` : ''}
           </text>
         </g>
         {node.children.map(child => renderNode(child))}
@@ -249,9 +260,9 @@ export default function MapEditor() {
             id="depthInput"
             className={styles.input}
             min={1}
-            max={10}
+            max={16}
             value={maxDepth}
-            onChange={(e) => setMaxDepth(parseInt(e.target.value))}
+            onChange={(e) => setMaxDepth(Math.min(16, parseInt(e.target.value)))}
           />
           <button className={styles.button} onClick={generateMap}>
             Generate Map
@@ -310,38 +321,49 @@ export default function MapEditor() {
                 Room Type: <span className={styles.editorValue}>{selectedNode.roomType}</span>
               </label>
             </div>
-            <div className={styles.editorField}>
-              <label className={styles.editorLabel} htmlFor="doorCountSelect">
-                Door Count:
-              </label>
-              <select
-                id="doorCountSelect"
-                className={styles.select}
-                value={doorCount}
-                onChange={(e) => setDoorCount(parseInt(e.target.value))}
-              >
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-                <option value={3}>3</option>
-                <option value={4}>4</option>
-              </select>
-            </div>
-            <div className={styles.editorField}>
-              <label className={styles.editorLabel} htmlFor="monsterSelect">
-                Monster Type:
-              </label>
-              <select
-                id="monsterSelect"
-                className={styles.select}
-                value={monsterType}
-                onChange={(e) => setMonsterType(e.target.value as MonsterType)}
-              >
-                <option value="GOBLIN">Goblin</option>
-                <option value="THICC_GOBLIN">Thicc Goblin</option>
-                <option value="TROLL">Troll</option>
-                <option value="ORC">Orc</option>
-              </select>
-            </div>
+            {selectedNode.roomType === 'BATTLE' && (
+              <>
+                <div className={styles.editorField}>
+                  <label className={styles.editorLabel} htmlFor="doorCountSelect">
+                    Door Count:
+                  </label>
+                  <select
+                    id="doorCountSelect"
+                    className={styles.select}
+                    value={doorCount}
+                    onChange={(e) => setDoorCount(parseInt(e.target.value))}
+                  >
+                    <option value={1}>1</option>
+                    <option value={2}>2</option>
+                    <option value={3}>3</option>
+                    <option value={4}>4</option>
+                  </select>
+                </div>
+                <div className={styles.editorField}>
+                  <label className={styles.editorLabel} htmlFor="monsterSelect">
+                    Monster Index:
+                  </label>
+                  <select
+                    id="monsterSelect"
+                    className={styles.select}
+                    value={monsterIndex}
+                    onChange={(e) => setMonsterIndex(parseInt(e.target.value))}
+                  >
+                    <option value={1}>1 - Goblin</option>
+                    <option value={2}>2 - Thicc Goblin</option>
+                    <option value={3}>3 - Troll</option>
+                    <option value={4}>4 - Orc</option>
+                  </select>
+                </div>
+              </>
+            )}
+            {selectedNode.roomType === 'GOAL' && (
+              <div className={styles.editorField}>
+                <label className={styles.editorLabel}>
+                  This is a GOAL room (no monsters or doors)
+                </label>
+              </div>
+            )}
             <button 
               className={`${styles.button} ${styles.applyButton}`}
               onClick={applyNodeChanges}
