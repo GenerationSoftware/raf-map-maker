@@ -117,10 +117,9 @@ export class MapValidator {
     }
 
     // Validate monster index
-    const validMonsters = ['GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
     if (node.roomType === 1) { // BATTLE
-      if (typeof node.monsterIndex1 !== 'string' || !validMonsters.includes(node.monsterIndex1)) {
-        this.errors.push(`${path}: BATTLE rooms must have monsterIndex1 as one of: ${validMonsters.join(', ')}`);
+      if (typeof node.monsterIndex1 !== 'number' || node.monsterIndex1 < 0 || node.monsterIndex1 > 65535) {
+        this.errors.push(`${path}: BATTLE rooms must have monsterIndex1 as a number between 0 and 65535`);
         valid = false;
       }
     } else if (node.roomType === 0 || node.roomType === 2) { // NULL or GOAL
@@ -132,8 +131,8 @@ export class MapValidator {
     
 
     // Validate nextRooms array
-    if (!Array.isArray(node.nextRooms) || node.nextRooms.length !== 7) {
-      this.errors.push(`${path}: nextRooms must be an array of exactly 7 elements`);
+    if (!Array.isArray(node.nextRooms) || node.nextRooms.length !== 6) {
+      this.errors.push(`${path}: nextRooms must be an array of exactly 6 elements`);
       valid = false;
     } else {
       let nonZeroCount = 0;
@@ -147,9 +146,9 @@ export class MapValidator {
         }
       }
       
-      // Validate that BATTLE rooms have 1-4 children
-      if (node.roomType === 1 && (nonZeroCount < 1 || nonZeroCount > 4)) { // BATTLE
-        this.errors.push(`${path}: BATTLE rooms must have 1-4 children (doors)`);
+      // Validate that BATTLE rooms have 1-6 children
+      if (node.roomType === 1 && (nonZeroCount < 1 || nonZeroCount > 6)) { // BATTLE
+        this.errors.push(`${path}: BATTLE rooms must have 1-6 children (doors)`);
         valid = false;
       }
       

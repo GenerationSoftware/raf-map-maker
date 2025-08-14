@@ -1,4 +1,5 @@
-export type MonsterType = 'GOBLIN' | 'THICC_GOBLIN' | 'TROLL' | 'ORC';
+// Monster types are now fetched dynamically from GraphQL
+// This type is kept for backward compatibility but not used
 
 export enum RoomType {
   NULL = 0,
@@ -9,8 +10,8 @@ export enum RoomType {
 export interface MapNodeData {
   id: number;
   roomType: number;  // Using integer enum values: 0=NULL, 1=BATTLE, 2=GOAL
-  monsterIndex1: string | null;  // Monster type string or null
-  nextRooms: number[];  // Array of 7 room IDs
+  monsterIndex1: number | null;  // Monster index (16-bit unsigned integer) or null
+  nextRooms: number[];  // Array of 6 room IDs
 }
 
 export class MapNode {
@@ -25,53 +26,20 @@ export class MapNode {
   y: number;
   subtreeWidth?: number;
 
-  constructor(id: number, depth: number, maxDepth: number, isRoot: boolean = false) {
+  constructor(id: number, depth: number, maxDepth: number, isRoot: boolean = false, monsterIndex: number = 0) {
     this.id = id;
     this.depth = depth;
     this.roomType = (depth >= maxDepth) ? RoomType.GOAL : RoomType.BATTLE;
-    this.monsterIndex1 = this.roomType === RoomType.GOAL ? 0 : this.getRandomMonsterIndex(depth, maxDepth);
-    this.nextRooms = new Array(7).fill(0);
+    this.monsterIndex1 = this.roomType === RoomType.GOAL ? 0 : monsterIndex;
+    this.nextRooms = new Array(6).fill(0);
     this.children = [];
     this.parent = null;
     this.x = 0;
     this.y = 0;
   }
 
-  getRandomMonsterIndex(depth: number, maxDepth: number): number {
-    const depthRatio = depth / Math.max(maxDepth, 1);
-    
-    if (depthRatio <= 0.25) {
-      const weights = [70, 20, 8, 2];
-      return this.weightedRandomIndex(weights);
-    }
-    else if (depthRatio <= 0.5) {
-      const weights = [40, 35, 20, 5];
-      return this.weightedRandomIndex(weights);
-    }
-    else if (depthRatio <= 0.75) {
-      const weights = [15, 30, 35, 20];
-      return this.weightedRandomIndex(weights);
-    }
-    else {
-      const weights = [5, 15, 35, 45];
-      return this.weightedRandomIndex(weights);
-    }
-  }
 
-  weightedRandomIndex(weights: number[]): number {
-    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-    let random = Math.random() * totalWeight;
-    
-    for (let i = 0; i < weights.length; i++) {
-      random -= weights[i];
-      if (random <= 0) {
-        return i + 1;
-      }
-    }
-    return weights.length;
-  }
-
-  generateChildren(maxDepth: number, nodeIdCounter: { value: number }, sharedGoalNode?: MapNode): { value: number; goalNode?: MapNode } {
+  generateChildren(maxDepth: number, nodeIdCounter: { value: number }, sharedGoalNode?: MapNode, availableMonsterIndices: number[] = [0, 1, 2, 3]): { value: number; goalNode?: MapNode } {
     if (this.depth >= maxDepth || this.roomType === RoomType.GOAL) {
       this.children = [];
       this.roomType = RoomType.GOAL;
@@ -103,11 +71,12 @@ export class MapNode {
       // Non-penultimate nodes generate normal children
       const numChildren = Math.floor(Math.random() * 4) + 1;
       for (let i = 0; i < numChildren; i++) {
-        const child = new MapNode(nodeIdCounter.value++, this.depth + 1, maxDepth, false);
+        const monsterIndex = this.getRandomMonsterIndexForDepth(this.depth + 1, maxDepth, availableMonsterIndices);
+        const child = new MapNode(nodeIdCounter.value++, this.depth + 1, maxDepth, false, monsterIndex);
         child.parent = this;
         this.children.push(child);
         this.nextRooms[i] = child.id;
-        const result = child.generateChildren(maxDepth, nodeIdCounter, goalNode);
+        const result = child.generateChildren(maxDepth, nodeIdCounter, goalNode, availableMonsterIndices);
         nodeIdCounter.value = result.value;
         if (result.goalNode) {
           goalNode = result.goalNode;
@@ -117,13 +86,54 @@ export class MapNode {
     }
   }
 
+  private getRandomMonsterIndexForDepth(depth: number, maxDepth: number, availableIndices: number[]): number {
+    if (availableIndices.length === 0) return 0;
+    
+    const depthRatio = depth / Math.max(maxDepth, 1);
+    
+    // Weight distribution based on depth (similar to original logic)
+    let weights: number[];
+    if (depthRatio <= 0.25) {
+      weights = [70, 20, 8, 2]; // Favor easier monsters
+    } else if (depthRatio <= 0.5) {
+      weights = [40, 35, 20, 5];
+    } else if (depthRatio <= 0.75) {
+      weights = [15, 30, 35, 20];
+    } else {
+      weights = [5, 15, 35, 45]; // Favor harder monsters
+    }
+    
+    // Ensure we don't have more weights than available monsters
+    while (weights.length > availableIndices.length) {
+      weights.pop();
+    }
+    
+    // Fill missing weights with 0
+    while (weights.length < availableIndices.length) {
+      weights.push(0);
+    }
+    
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    if (totalWeight === 0) return availableIndices[0];
+    
+    let random = Math.random() * totalWeight;
+    
+    for (let i = 0; i < weights.length; i++) {
+      random -= weights[i];
+      if (random <= 0) {
+        return availableIndices[i];
+      }
+    }
+    
+    // Fallback to first available index
+    return availableIndices[0];
+  }
 
   toJSON(): MapNodeData {
-    const monsters = ['', 'GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
     return {
       id: this.id,
       roomType: this.roomType,
-      monsterIndex1: (this.roomType === RoomType.NULL || this.roomType === RoomType.GOAL) ? null : monsters[this.monsterIndex1] || null,
+      monsterIndex1: (this.roomType === RoomType.NULL || this.roomType === RoomType.GOAL) ? null : this.monsterIndex1,
       nextRooms: [...this.nextRooms]
     };
   }
@@ -180,16 +190,10 @@ export class MapNode {
     const node = new MapNode(data.id, depth, 0, false);
     node.roomType = data.roomType;
     
-    // Convert monster string back to index
-    if (data.monsterIndex1 === null) {
-      node.monsterIndex1 = 0;
-    } else {
-      const monsters = ['', 'GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
-      node.monsterIndex1 = monsters.indexOf(data.monsterIndex1);
-      if (node.monsterIndex1 === -1) node.monsterIndex1 = 1; // Default to GOBLIN if unknown
-    }
+    // Monster index is already an integer
+    node.monsterIndex1 = data.monsterIndex1 || 0;
     
-    node.nextRooms = data.nextRooms ? [...data.nextRooms] : new Array(7).fill(0);
+    node.nextRooms = data.nextRooms ? [...data.nextRooms] : new Array(6).fill(0);
     node.parent = parent;
     node.children = [];
     return node;

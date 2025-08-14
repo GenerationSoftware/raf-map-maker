@@ -1,0 +1,172 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_implementation",
+        "type": "address",
+        "internalType": "contract Battle"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "implementation",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract Battle"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "newGame",
+    "inputs": [
+      {
+        "name": "_trustedForwarder",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_operator",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_startAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_turnDuration",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_deckConfiguration",
+        "type": "address",
+        "internalType": "contract DeckConfiguration"
+      },
+      {
+        "name": "_playerDeckManager",
+        "type": "address",
+        "internalType": "contract PlayerDeckManager"
+      },
+      {
+        "name": "enforceAdjacency",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "turnTimerEnabled",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract Battle"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "CreatedGame",
+    "inputs": [
+      {
+        "name": "trustedForwarder",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "gameAddress",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "operator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "startAt",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "turnDuration",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "deckConfiguration",
+        "type": "address",
+        "indexed": false,
+        "internalType": "contract DeckConfiguration"
+      },
+      {
+        "name": "playerStatsStorage",
+        "type": "address",
+        "indexed": false,
+        "internalType": "contract PlayerStatsStorage"
+      },
+      {
+        "name": "playerDeckManager",
+        "type": "address",
+        "indexed": false,
+        "internalType": "contract PlayerDeckManager"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "CloneArgumentsTooLong",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FailedDeployment",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientBalance",
+    "inputs": [
+      {
+        "name": "balance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "needed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  }
+]

@@ -7,7 +7,7 @@ describe('MapNode', () => {
       expect(node.id).toBe(1);
       expect(node.depth).toBe(0);
       expect(node.roomType).toBe(RoomType.BATTLE);
-      expect(node.nextRooms).toEqual([0, 0, 0, 0, 0, 0, 0]);
+      expect(node.nextRooms).toEqual([0, 0, 0, 0, 0, 0]);
       expect(node.children).toEqual([]);
       expect(node.parent).toBeNull();
     });
@@ -59,13 +59,13 @@ describe('MapNode', () => {
       const node = new MapNode(1, 0, 3, false);
       node.roomType = RoomType.BATTLE;
       node.monsterIndex1 = 2;
-      node.nextRooms = [2, 3, 0, 0, 0, 0, 0];
+      node.nextRooms = [2, 3, 0, 0, 0, 0];
       
       const json = node.toJSON();
       expect(json.id).toBe(1);
       expect(json.roomType).toBe(RoomType.BATTLE);
-      expect(json.monsterIndex1).toBe('THICC_GOBLIN');
-      expect(json.nextRooms).toEqual([2, 3, 0, 0, 0, 0, 0]);
+      expect(json.monsterIndex1).toBe(2);
+      expect(json.nextRooms).toEqual([2, 3, 0, 0, 0, 0]);
     });
 
     it('should serialize a GOAL node with null monster', () => {
@@ -118,20 +118,20 @@ describe('MapNode', () => {
         {
           id: 1,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'GOBLIN',
-          nextRooms: [2, 3, 0, 0, 0, 0, 0]
+          monsterIndex1: 0,
+          nextRooms: [2, 3, 0, 0, 0, 0]
         },
         {
           id: 2,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         },
         {
           id: 3,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
       
@@ -139,7 +139,7 @@ describe('MapNode', () => {
       expect(root).not.toBeNull();
       expect(root!.id).toBe(1);
       expect(root!.children.length).toBe(2);
-      expect(root!.nextRooms).toEqual([2, 3, 0, 0, 0, 0, 0]);
+      expect(root!.nextRooms).toEqual([2, 3, 0, 0, 0, 0]);
     });
 
     it('should handle empty data', () => {

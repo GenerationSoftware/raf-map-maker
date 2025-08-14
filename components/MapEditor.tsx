@@ -4,15 +4,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './MapEditor.module.css';
 import { MapNode, MapNodeData, RoomType } from '@/lib/types';
 import { MapValidator } from '@/lib/validator';
+import { generateMapWithMonsters } from '@/lib/map-generator-async';
+import { getMonsters, getMonsterName } from '@/lib/monsters';
 
 export default function MapEditor() {
   const [root, setRoot] = useState<MapNode | null>(null);
   const [maxDepth, setMaxDepth] = useState(3);
   const [selectedNode, setSelectedNode] = useState<MapNode | null>(null);
   const [currentZoom, setCurrentZoom] = useState(1);
-  const [monsterIndex, setMonsterIndex] = useState<number>(1);
+  const [monsterIndex, setMonsterIndex] = useState<number>(0);
   const [editChildrenMode, setEditChildrenMode] = useState(false);
   const [graphVersion, setGraphVersion] = useState(0); // Force re-render of graph
+  const [monsters, setMonsters] = useState<{ [key: number]: string }>({});
+  const [isGenerating, setIsGenerating] = useState(false);
   
   const nodeIdCounter = useRef({ value: 1 });
   const nodeElements = useRef(new Map<MapNode, SVGRectElement>());
@@ -25,16 +29,38 @@ export default function MapEditor() {
 
   useEffect(() => {
     generateMap();
+    loadMonsters();
   }, []);
 
-  const generateMap = () => {
-    nodeIdCounter.current = { value: 1 };
-    const newRoot = new MapNode(nodeIdCounter.current.value++, 0, maxDepth, true);
-    const result = newRoot.generateChildren(maxDepth, nodeIdCounter.current);
-    nodeIdCounter.current.value = result.value;
-    calculateNodePositions(newRoot);
-    setRoot(newRoot);
-    setSelectedNode(null);
+  const loadMonsters = async () => {
+    try {
+      const monsterData = await getMonsters();
+      const monsterMap: { [key: number]: string } = {};
+      monsterData.forEach(monster => {
+        monsterMap[monster.index] = monster.name;
+      });
+      setMonsters(monsterMap);
+    } catch (error) {
+      console.error('Error loading monsters:', error);
+      // Fallback monster names
+      setMonsters({ 0: 'Goblin', 1: 'ThiccGoblin', 2: 'Troll', 3: 'Orc' });
+    }
+  };
+
+  const generateMap = async () => {
+    setIsGenerating(true);
+    try {
+      nodeIdCounter.current = { value: 1 };
+      const { root: newRoot, nodeIdCounter: counter } = await generateMapWithMonsters(maxDepth);
+      nodeIdCounter.current = counter;
+      calculateNodePositions(newRoot);
+      setRoot(newRoot);
+      setSelectedNode(null);
+    } catch (error) {
+      console.error('Error generating map:', error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const calculateNodePositions = (rootNode: MapNode) => {
@@ -209,7 +235,7 @@ export default function MapEditor() {
     } else {
       // Normal selection mode
       setSelectedNode(node);
-      setMonsterIndex(node.monsterIndex1 || 1);
+      setMonsterIndex(node.monsterIndex1 || 0);
       setEditChildrenMode(false);
     }
   };
@@ -224,6 +250,32 @@ export default function MapEditor() {
       setGraphVersion(v => v + 1);
       setRoot(root);
     }
+  };
+
+  const updateRoomType = (newRoomType: RoomType) => {
+    if (!selectedNode || !root) return;
+    
+    selectedNode.roomType = newRoomType;
+    
+    // Update monster index based on room type
+    if (newRoomType === RoomType.GOAL || newRoomType === RoomType.NULL) {
+      selectedNode.monsterIndex1 = 0;
+      setMonsterIndex(0);
+    } else if (newRoomType === RoomType.BATTLE && selectedNode.monsterIndex1 === 0) {
+      // If changing to BATTLE and no monster set, set default
+      selectedNode.monsterIndex1 = 0; // Default to first available monster
+      setMonsterIndex(0);
+    }
+    
+    // If changing to GOAL, clear all children
+    if (newRoomType === RoomType.GOAL) {
+      selectedNode.nextRooms = [0, 0, 0, 0, 0, 0];
+      selectedNode.children = [];
+    }
+    
+    // Force re-render
+    setGraphVersion(v => v + 1);
+    setRoot(root);
   };
 
   const toggleChildNode = (targetNode: MapNode) => {
@@ -281,7 +333,7 @@ export default function MapEditor() {
     newNode.roomType = RoomType.GOAL;
     newNode.monsterIndex1 = 0;
     newNode.parent = selectedNode;
-    newNode.nextRooms = [0, 0, 0, 0, 0, 0, 0];
+    newNode.nextRooms = [0, 0, 0, 0, 0, 0];
     newNode.children = [];
     
     // Add to parent's children array
@@ -434,8 +486,7 @@ export default function MapEditor() {
 
   const renderNode = (node: MapNode): React.ReactElement => {
     const getMonsterName = (index: number): string => {
-      const monsters = ['', 'GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
-      return monsters[index] || '';
+      return monsters[index] || `Monster ${index}`;
     };
 
     const getNodeColor = () => {
@@ -505,8 +556,8 @@ export default function MapEditor() {
             value={maxDepth}
             onChange={(e) => setMaxDepth(Math.min(16, parseInt(e.target.value)))}
           />
-          <button className={styles.button} onClick={generateMap}>
-            Generate Map
+          <button className={styles.button} onClick={generateMap} disabled={isGenerating}>
+            {isGenerating ? 'Generating...' : 'Generate Map'}
           </button>
         </div>
         
@@ -573,9 +624,19 @@ export default function MapEditor() {
               </label>
             </div>
             <div className={styles.editorField}>
-              <label className={styles.editorLabel}>
-                Room Type: <span className={styles.editorValue}>{selectedNode.roomType === RoomType.BATTLE ? 'BATTLE' : selectedNode.roomType === RoomType.GOAL ? 'GOAL' : 'NULL'}</span>
+              <label className={styles.editorLabel} htmlFor="roomTypeSelect">
+                Room Type:
               </label>
+              <select
+                id="roomTypeSelect"
+                className={styles.select}
+                value={selectedNode.roomType}
+                onChange={(e) => updateRoomType(parseInt(e.target.value) as RoomType)}
+              >
+                <option value={RoomType.NULL}>NULL</option>
+                <option value={RoomType.BATTLE}>BATTLE</option>
+                <option value={RoomType.GOAL}>GOAL</option>
+              </select>
             </div>
             <div className={styles.editorField}>
               <label className={styles.editorLabel}>
@@ -612,10 +673,11 @@ export default function MapEditor() {
                   value={monsterIndex}
                   onChange={(e) => updateMonsterIndex(parseInt(e.target.value))}
                 >
-                  <option value={1}>1 - Goblin</option>
-                  <option value={2}>2 - Thicc Goblin</option>
-                  <option value={3}>3 - Troll</option>
-                  <option value={4}>4 - Orc</option>
+                  {Object.entries(monsters).map(([index, name]) => (
+                    <option key={index} value={index}>
+                      {index} - {name}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}

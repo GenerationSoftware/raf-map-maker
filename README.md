@@ -8,11 +8,7 @@ A graph-based game map editor for creating dungeon layouts with monsters and roo
 
 - **Graph-based map generation** with configurable depth (1-10 levels)
 - **Shared goal nodes** - multiple paths can lead to the same destination
-- **Monster types** with difficulty scaling by depth:
-  - Goblin (easiest, blue)
-  - Thicc Goblin (orange)
-  - Troll (red)  
-  - Orc (hardest, purple)
+- **Dynamic monster loading** via GraphQL with difficulty scaling by depth
 - **Interactive editing mode** - add/remove connections between nodes visually
 - **Smart node positioning** - automatic layout with parent-child centering
 - **Zoom controls** - zoom from 10% to 200% for easy navigation
@@ -21,6 +17,14 @@ A graph-based game map editor for creating dungeon layouts with monsters and roo
 - **Comprehensive test suite** - 95%+ code coverage with unit and integration tests
 
 ## Getting Started
+
+### Prerequisites
+
+The application requires a GraphQL endpoint for monster data. Set the endpoint URL in your environment:
+
+```bash
+NEXT_PUBLIC_GRAPHQL_URL=http://localhost:42069/graphql
+```
 
 ### Development
 
@@ -54,12 +58,12 @@ npm start
 Each node in the graph contains:
 - `id`: Unique identifier (sequential starting from 1)
 - `roomType`: Integer enum (0=NULL, 1=BATTLE, 2=GOAL)
-- `monsterIndex1`: Monster type string or null for non-battle rooms
-- `nextRooms`: Array of 7 room IDs (0 means no connection)
+- `monsterIndex1`: Monster index (16-bit unsigned integer) or null for non-battle rooms
+- `nextRooms`: Array of 6 room IDs (0 means no connection)
 
 Room types:
 - **NULL (0)**: Starting nodes with no monsters
-- **BATTLE (1)**: Combat rooms with monsters (1-4 connections)
+- **BATTLE (1)**: Combat rooms with monsters (1-6 connections)
 - **GOAL (2)**: End rooms with no monsters or connections
 
 ## JSON Schema

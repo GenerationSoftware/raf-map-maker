@@ -16,9 +16,10 @@
       "description": "Type of room - 0=NULL, 1=BATTLE, 2=GOAL"
     },
     "monsterIndex1": {
-      "type": ["string", "null"],
-      "enum": ["GOBLIN", "THICC_GOBLIN", "TROLL", "ORC", null],
-      "description": "Type of monster in this room (null for NULL/GOAL rooms, required for BATTLE rooms)"
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Monster index (16-bit unsigned integer, null for NULL/GOAL rooms, required for BATTLE rooms)"
     },
     "nextRooms": {
       "type": "array",
@@ -26,9 +27,9 @@
         "type": "integer",
         "minimum": 0
       },
-      "minItems": 7,
-      "maxItems": 7,
-      "description": "Array of 7 room IDs, with 0 meaning no connection"
+      "minItems": 6,
+      "maxItems": 6,
+      "description": "Array of 6 room IDs, with 0 meaning no connection"
     }
   },
   "allOf": [
@@ -55,8 +56,9 @@
       "then": {
         "properties": {
           "monsterIndex1": {
-            "type": "string",
-            "enum": ["GOBLIN", "THICC_GOBLIN", "TROLL", "ORC"]
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
           }
         },
         "required": ["monsterIndex1"]
@@ -74,7 +76,7 @@
             "type": "null"
           },
           "nextRooms": {
-            "const": [0, 0, 0, 0, 0, 0, 0]
+            "const": [0, 0, 0, 0, 0, 0]
           }
         }
       }

@@ -5,12 +5,12 @@ export interface NodeIdCounter {
 }
 
 /**
- * Generate a complete map with the given max depth
+ * Generate a complete map with the given max depth and available monster indices
  */
-export function generateMap(maxDepth: number): { root: MapNode; nodeIdCounter: NodeIdCounter } {
+export function generateMap(maxDepth: number, availableMonsterIndices: number[] = [0, 1, 2, 3]): { root: MapNode; nodeIdCounter: NodeIdCounter } {
   const nodeIdCounter: NodeIdCounter = { value: 1 };
-  const root = new MapNode(nodeIdCounter.value++, 0, maxDepth, true);
-  const result = root.generateChildren(maxDepth, nodeIdCounter);
+  const root = new MapNode(nodeIdCounter.value++, 0, maxDepth, true, 0); // Root node has no monster
+  const result = root.generateChildren(maxDepth, nodeIdCounter, undefined, availableMonsterIndices);
   nodeIdCounter.value = result.value;
   return { root, nodeIdCounter };
 }
@@ -22,7 +22,7 @@ export function createGoalNode(parentDepth: number, nodeId: number, maxDepth: nu
   const node = new MapNode(nodeId, parentDepth + 1, maxDepth, false);
   node.roomType = RoomType.GOAL;
   node.monsterIndex1 = 0;
-  node.nextRooms = [0, 0, 0, 0, 0, 0, 0];
+  node.nextRooms = [0, 0, 0, 0, 0, 0];
   node.children = [];
   return node;
 }
@@ -34,7 +34,7 @@ export function createBattleNode(parentDepth: number, nodeId: number, maxDepth: 
   const node = new MapNode(nodeId, parentDepth + 1, maxDepth, false);
   node.roomType = RoomType.BATTLE;
   node.monsterIndex1 = monsterIndex;
-  node.nextRooms = [0, 0, 0, 0, 0, 0, 0];
+  node.nextRooms = [0, 0, 0, 0, 0, 0];
   node.children = [];
   return node;
 }

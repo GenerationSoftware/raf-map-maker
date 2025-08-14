@@ -134,7 +134,7 @@ describe('End-to-End Map Workflow', () => {
     loadedNodes.forEach(node => {
       expect(node.id).toBeGreaterThan(0);
       expect(node.roomType).toBeDefined();
-      expect(node.nextRooms).toHaveLength(7);
+      expect(node.nextRooms).toHaveLength(6);
       
       // Verify connections are valid
       node.nextRooms.forEach(childId => {

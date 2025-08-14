@@ -14,20 +14,20 @@ describe('MapValidator', () => {
         {
           id: 1,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'GOBLIN',
-          nextRooms: [2, 3, 0, 0, 0, 0, 0]
+          monsterIndex1: 0,
+          nextRooms: [2, 3, 0, 0, 0, 0]
         },
         {
           id: 2,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         },
         {
           id: 3,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
@@ -41,14 +41,14 @@ describe('MapValidator', () => {
         {
           id: 1,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'GOBLIN',
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          monsterIndex1: 0,
+          nextRooms: [0, 0, 0, 0, 0, 0]
         },
         {
           id: 1, // Duplicate ID
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
@@ -62,14 +62,14 @@ describe('MapValidator', () => {
         {
           id: 1,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'GOBLIN',
+          monsterIndex1: 0,
           nextRooms: [3, 0, 0, 0, 0, 0, 0]
         },
         {
           id: 3, // Skipped ID 2
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
@@ -83,8 +83,8 @@ describe('MapValidator', () => {
         {
           id: 1,
           roomType: 99, // Invalid room type
-          monsterIndex1: 'GOBLIN',
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          monsterIndex1: 0,
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
@@ -99,13 +99,13 @@ describe('MapValidator', () => {
           id: 1,
           roomType: RoomType.BATTLE,
           monsterIndex1: null, // Should have a monster
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
       const result = validator.validate(data);
       expect(result).toBe(false);
-      expect(validator.getErrors().some(e => e.includes('BATTLE rooms must have monsterIndex1'))).toBe(true);
+      expect(validator.getErrors().some(e => e.includes('BATTLE rooms must have monsterIndex1 as a number'))).toBe(true);
     });
 
     it('should require null monster for GOAL rooms', () => {
@@ -113,8 +113,8 @@ describe('MapValidator', () => {
         {
           id: 1,
           roomType: RoomType.GOAL,
-          monsterIndex1: 'GOBLIN', // Should be null
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          monsterIndex1: 0, // Should be null
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
@@ -129,13 +129,13 @@ describe('MapValidator', () => {
           id: 1,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [2, 0, 0, 0, 0, 0, 0] // Should have no children
+          nextRooms: [2, 0, 0, 0, 0, 0] // Should have no children
         },
         {
           id: 2,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
@@ -149,8 +149,8 @@ describe('MapValidator', () => {
         {
           id: 1,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'GOBLIN',
-          nextRooms: [0, 0, 0, 0, 0, 0, 0] // Should have children
+          monsterIndex1: 0,
+          nextRooms: [0, 0, 0, 0, 0, 0] // Should have children
         }
       ];
 
@@ -159,49 +159,54 @@ describe('MapValidator', () => {
       expect(validator.getErrors().some(e => e.includes('BATTLE rooms should have children'))).toBe(true);
     });
 
-    it('should enforce max 4 children for BATTLE rooms', () => {
+    it('should allow max 6 children for BATTLE rooms', () => {
       const data = [
         {
           id: 1,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'GOBLIN',
-          nextRooms: [2, 3, 4, 5, 6, 0, 0] // 5 children, max is 4
+          monsterIndex1: 0,
+          nextRooms: [2, 3, 4, 5, 6, 7] // 6 children, which should be max allowed
         },
         {
           id: 2,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         },
         {
           id: 3,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         },
         {
           id: 4,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         },
         {
           id: 5,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         },
         {
           id: 6,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
+        },
+        {
+          id: 7,
+          roomType: RoomType.GOAL,
+          monsterIndex1: null,
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
       const result = validator.validate(data);
-      expect(result).toBe(false);
-      expect(validator.getErrors().some(e => e.includes('BATTLE rooms must have 1-4 children'))).toBe(true);
+      expect(result).toBe(true);
     });
 
     it('should validate nextRooms array structure', () => {
@@ -209,20 +214,20 @@ describe('MapValidator', () => {
         {
           id: 1,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'GOBLIN',
-          nextRooms: [2, 0, 0] // Wrong length, should be 7
+          monsterIndex1: 0,
+          nextRooms: [2, 0, 0] // Wrong length, should be 6
         },
         {
           id: 2,
           roomType: RoomType.GOAL,
           monsterIndex1: null,
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
       const result = validator.validate(data);
       expect(result).toBe(false);
-      expect(validator.getErrors().some(e => e.includes('nextRooms must be an array of exactly 7 elements'))).toBe(true);
+      expect(validator.getErrors().some(e => e.includes('nextRooms must be an array of exactly 6 elements'))).toBe(true);
     });
 
     it('should reject non-existent child references', () => {
@@ -230,7 +235,7 @@ describe('MapValidator', () => {
         {
           id: 1,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'GOBLIN',
+          monsterIndex1: 0,
           nextRooms: [999, 0, 0, 0, 0, 0, 0] // References non-existent node
         }
       ];
@@ -245,14 +250,14 @@ describe('MapValidator', () => {
         {
           id: 1,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'GOBLIN',
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          monsterIndex1: 0,
+          nextRooms: [0, 0, 0, 0, 0, 0]
         },
         {
           id: 2,
           roomType: RoomType.BATTLE,
-          monsterIndex1: 'ORC',
-          nextRooms: [0, 0, 0, 0, 0, 0, 0]
+          monsterIndex1: 3,
+          nextRooms: [0, 0, 0, 0, 0, 0]
         }
       ];
 
@@ -273,8 +278,8 @@ describe('MapValidator', () => {
         {
           id: 2, // Should start at 1
           roomType: 99, // Invalid
-          monsterIndex1: 'INVALID', // Invalid monster
-          nextRooms: [0, 0, 0] // Wrong length
+          monsterIndex1: 99999, // Invalid monster index
+          nextRooms: [0, 0, 0] // Wrong length, should be 6
         }
       ];
 
