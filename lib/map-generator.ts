@@ -9,7 +9,11 @@ export interface NodeIdCounter {
  */
 export function generateMap(maxDepth: number, availableMonsterIndices: number[] = [0, 1, 2, 3]): { root: MapNode; nodeIdCounter: NodeIdCounter } {
   const nodeIdCounter: NodeIdCounter = { value: 1 };
-  const root = new MapNode(nodeIdCounter.value++, 0, maxDepth, true, 0); // Root node has no monster
+  // Root node should be BATTLE type with first available monster
+  const rootMonsterIndex = availableMonsterIndices[0] || 1;
+  const root = new MapNode(nodeIdCounter.value++, 0, maxDepth, true, rootMonsterIndex);
+  root.roomType = RoomType.BATTLE; // Root is BATTLE type
+  root.monsterIndex1 = rootMonsterIndex; // Root has a monster
   const result = root.generateChildren(maxDepth, nodeIdCounter, undefined, availableMonsterIndices);
   nodeIdCounter.value = result.value;
   return { root, nodeIdCounter };

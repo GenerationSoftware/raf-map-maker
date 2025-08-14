@@ -33,18 +33,12 @@ export default function MapEditor() {
   }, []);
 
   const loadMonsters = async () => {
-    try {
-      const monsterData = await getMonsters();
-      const monsterMap: { [key: number]: string } = {};
-      monsterData.forEach(monster => {
-        monsterMap[monster.index] = monster.name;
-      });
-      setMonsters(monsterMap);
-    } catch (error) {
-      console.error('Error loading monsters:', error);
-      // Fallback monster names
-      setMonsters({ 0: 'Goblin', 1: 'ThiccGoblin', 2: 'Troll', 3: 'Orc' });
-    }
+    const monsterData = await getMonsters();
+    const monsterMap: { [key: number]: string } = {};
+    monsterData.forEach(monster => {
+      monsterMap[monster.index] = monster.name;
+    });
+    setMonsters(monsterMap);
   };
 
   const generateMap = async () => {
@@ -258,13 +252,14 @@ export default function MapEditor() {
     selectedNode.roomType = newRoomType;
     
     // Update monster index based on room type
-    if (newRoomType === RoomType.GOAL || newRoomType === RoomType.NULL) {
+    if (newRoomType === RoomType.GOAL) {
       selectedNode.monsterIndex1 = 0;
       setMonsterIndex(0);
     } else if (newRoomType === RoomType.BATTLE && selectedNode.monsterIndex1 === 0) {
-      // If changing to BATTLE and no monster set, set default
-      selectedNode.monsterIndex1 = 0; // Default to first available monster
-      setMonsterIndex(0);
+      // If changing to BATTLE and no monster set, set to first available monster
+      const firstMonsterIndex = Object.keys(monsters).map(Number).sort((a, b) => a - b)[0] || 1;
+      selectedNode.monsterIndex1 = firstMonsterIndex;
+      setMonsterIndex(firstMonsterIndex);
     }
     
     // If changing to GOAL, clear all children
@@ -500,10 +495,11 @@ export default function MapEditor() {
         }
       }
       if (node.roomType === RoomType.GOAL) return '#48bb78';
-      if (node.monsterIndex1 === 1) return '#63b3ed';
-      if (node.monsterIndex1 === 2) return '#f6ad55';
-      if (node.monsterIndex1 === 3) return '#fc8181';
-      if (node.monsterIndex1 === 4) return '#b794f4';
+      // Monster colors now match indices starting at 1
+      if (node.monsterIndex1 === 1) return '#63b3ed'; // Goblin
+      if (node.monsterIndex1 === 2) return '#f6ad55'; // ThiccGoblin
+      if (node.monsterIndex1 === 3) return '#fc8181'; // Troll
+      if (node.monsterIndex1 === 4) return '#b794f4'; // Orc
       return '#718096';
     };
 
@@ -528,7 +524,7 @@ export default function MapEditor() {
             fill={getNodeColor()}
           />
           <text y={-5} fill="white" fontSize={12} fontWeight={500} textAnchor="middle">
-            {node.roomType === RoomType.BATTLE ? 'BATTLE' : node.roomType === RoomType.GOAL ? 'GOAL' : 'NULL'}
+            {node.roomType === RoomType.BATTLE ? 'BATTLE' : 'GOAL'}
           </text>
           <text y={10} fill="white" fontSize={11} fontWeight={500} textAnchor="middle">
             {node.roomType === RoomType.BATTLE ? getMonsterName(node.monsterIndex1) : ''}
@@ -633,7 +629,6 @@ export default function MapEditor() {
                 value={selectedNode.roomType}
                 onChange={(e) => updateRoomType(parseInt(e.target.value) as RoomType)}
               >
-                <option value={RoomType.NULL}>NULL</option>
                 <option value={RoomType.BATTLE}>BATTLE</option>
                 <option value={RoomType.GOAL}>GOAL</option>
               </select>

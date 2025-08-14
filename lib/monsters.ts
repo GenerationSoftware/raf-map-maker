@@ -23,30 +23,18 @@ export async function getMonsters(): Promise<MonsterData[]> {
     return monsterCache;
   }
   
-  try {
-    const monsters = await fetchMonsters();
-    
-    // Convert GraphQL response to our format
-    monsterCache = monsters.map(monster => ({
-      index: parseInt(monster.index),
-      name: monster.character.name,
-      health: parseInt(monster.health),
-      characterAddress: monster.characterAddress,
-    })).sort((a, b) => a.index - b.index); // Sort by index
-    
-    lastFetchTime = now;
-    return monsterCache;
-  } catch (error) {
-    console.error('Failed to fetch monsters:', error);
-    
-    // Return fallback data if fetch fails
-    return [
-      { index: 0, name: 'Goblin', health: 40, characterAddress: '0x0' },
-      { index: 1, name: 'ThiccGoblin', health: 50, characterAddress: '0x1' },
-      { index: 2, name: 'Troll', health: 80, characterAddress: '0x2' },
-      { index: 3, name: 'Orc', health: 100, characterAddress: '0x3' },
-    ];
-  }
+  const monsters = await fetchMonsters();
+  
+  // Convert GraphQL response to our format - use indices as-is
+  monsterCache = monsters.map(monster => ({
+    index: parseInt(monster.index),
+    name: monster.character.name,
+    health: parseInt(monster.health),
+    characterAddress: monster.characterAddress,
+  })).sort((a, b) => a.index - b.index); // Sort by index
+  
+  lastFetchTime = now;
+  return monsterCache;
 }
 
 /**
@@ -103,7 +91,7 @@ export async function getRandomMonsterIndex(depth: number, maxDepth: number): Pr
   const availableIndices = monsters.map(m => m.index);
   
   if (availableIndices.length === 0) {
-    return 0; // Fallback
+    throw new Error('No monsters available from GraphQL');
   }
   
   const depthRatio = depth / Math.max(maxDepth, 1);

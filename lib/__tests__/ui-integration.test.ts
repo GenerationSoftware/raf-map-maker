@@ -24,9 +24,9 @@ describe('UI Integration Tests', () => {
     it('should create nodes that pass validation', () => {
       const validator = new MapValidator();
 
-      // Test single GOAL node (needs to be root with ID 1)
+      // Test single GOAL node (root is a single GOAL)
       const goalNode = createGoalNode(0, 1, 1); // depth 0, id 1, maxDepth 1
-      goalNode.roomType = RoomType.NULL; // Root should be NULL type
+      goalNode.roomType = RoomType.GOAL; // Single node map is GOAL
       goalNode.monsterIndex1 = 0;
       const goalData = goalNode.toJSON();
       expect(validator.validate([goalData])).toBe(true);

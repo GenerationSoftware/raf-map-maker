@@ -133,7 +133,7 @@ export class MapNode {
     return {
       id: this.id,
       roomType: this.roomType,
-      monsterIndex1: (this.roomType === RoomType.NULL || this.roomType === RoomType.GOAL) ? null : this.monsterIndex1,
+      monsterIndex1: (this.roomType === RoomType.GOAL) ? null : this.monsterIndex1,
       nextRooms: [...this.nextRooms]
     };
   }
