@@ -10,8 +10,9 @@ export default function MapEditor() {
   const [maxDepth, setMaxDepth] = useState(3);
   const [selectedNode, setSelectedNode] = useState<MapNode | null>(null);
   const [currentZoom, setCurrentZoom] = useState(1);
-  const [doorCount, setDoorCount] = useState(1);
   const [monsterIndex, setMonsterIndex] = useState<number>(1);
+  const [editChildrenMode, setEditChildrenMode] = useState(false);
+  const [graphVersion, setGraphVersion] = useState(0); // Force re-render of graph
   
   const nodeIdCounter = useRef({ value: 1 });
   const nodeElements = useRef(new Map<MapNode, SVGRectElement>());
@@ -29,7 +30,8 @@ export default function MapEditor() {
   const generateMap = () => {
     nodeIdCounter.current = { value: 1 };
     const newRoot = new MapNode(nodeIdCounter.current.value++, 0, maxDepth, true);
-    newRoot.generateChildren(maxDepth, nodeIdCounter.current);
+    const result = newRoot.generateChildren(maxDepth, nodeIdCounter.current);
+    nodeIdCounter.current.value = result.value;
     calculateNodePositions(newRoot);
     setRoot(newRoot);
     setSelectedNode(null);
@@ -38,64 +40,177 @@ export default function MapEditor() {
   const calculateNodePositions = (rootNode: MapNode) => {
     const nodeWidth = 140;
     const levelHeight = 150;
-    const siblingSpacing = 20;
+    const minSiblingSpacing = 40;
     
-    const calculateSubtreeWidth = (node: MapNode): number => {
-      if (node.children.length === 0) {
-        node.subtreeWidth = nodeWidth;
-        return nodeWidth;
+    // Use the shared traverseGraph function
+    const allNodes = traverseGraph(rootNode);
+    const nodesByDepth = new Map<number, MapNode[]>();
+    const nodeParents = new Map<number, Set<MapNode>>();
+    
+    // Organize nodes by depth and track parent relationships
+    allNodes.forEach(node => {
+      // Group nodes by depth
+      if (!nodesByDepth.has(node.depth)) {
+        nodesByDepth.set(node.depth, []);
+      }
+      nodesByDepth.get(node.depth)!.push(node);
+      
+      // Track parent relationships based on nextRooms
+      for (const childId of node.nextRooms) {
+        if (childId > 0) {
+          if (!nodeParents.has(childId)) {
+            nodeParents.set(childId, new Set());
+          }
+          nodeParents.get(childId)!.add(node);
+        }
+      }
+    });
+    
+    // Second pass: position nodes with parent-child centering
+    const maxDepth = Math.max(...Array.from(nodesByDepth.keys()));
+    
+    // Start with root at center
+    rootNode.x = 600;
+    rootNode.y = 50;
+    
+    // Position nodes depth by depth
+    for (let depth = 1; depth <= maxDepth; depth++) {
+      const nodes = nodesByDepth.get(depth) || [];
+      
+      // For each node at this depth, calculate ideal position based on parents
+      const idealPositions = new Map<MapNode, number>();
+      const hasMultipleParents = new Set<MapNode>();
+      
+      for (const node of nodes) {
+        const parents = nodeParents.get(node.id);
+        if (parents && parents.size > 0) {
+          if (parents.size > 1) {
+            hasMultipleParents.add(node);
+          }
+          // Calculate average parent position
+          let sumX = 0;
+          for (const parent of parents) {
+            sumX += parent.x;
+          }
+          idealPositions.set(node, sumX / parents.size);
+        } else {
+          idealPositions.set(node, 600);
+        }
       }
       
-      let totalWidth = 0;
-      node.children.forEach((child, index) => {
-        totalWidth += calculateSubtreeWidth(child);
-        if (index > 0) {
-          totalWidth += siblingSpacing;
+      // Sort nodes by ideal position
+      nodes.sort((a, b) => {
+        const posA = idealPositions.get(a) || 0;
+        const posB = idealPositions.get(b) || 0;
+        return posA - posB;
+      });
+      
+      // Position nodes, trying to keep them close to ideal positions
+      // while maintaining minimum spacing
+      if (nodes.length === 1) {
+        // Single node - place at ideal position
+        nodes[0].x = idealPositions.get(nodes[0]) || 600;
+      } else {
+        // Multiple nodes - space them out while centering around parents
+        const positions: number[] = [];
+        
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          const ideal = idealPositions.get(node) || 600;
+          
+          if (i === 0) {
+            positions.push(ideal);
+          } else {
+            // Ensure minimum spacing from previous node
+            const minX = positions[i - 1] + nodeWidth + minSiblingSpacing;
+            positions.push(Math.max(minX, ideal));
+          }
         }
-      });
+        
+        // Center the whole group if needed
+        const leftMost = Math.min(...positions);
+        const rightMost = Math.max(...positions);
+        const groupCenter = (leftMost + rightMost) / 2;
+        const idealCenter = Array.from(idealPositions.values()).reduce((a, b) => a + b, 0) / idealPositions.size;
+        const offset = idealCenter - groupCenter;
+        
+        // Apply positions with centering offset (bounded to keep on screen)
+        for (let i = 0; i < nodes.length; i++) {
+          nodes[i].x = positions[i] + Math.max(-leftMost + 100, Math.min(offset, 1000));
+        }
+      }
       
-      node.subtreeWidth = Math.max(nodeWidth, totalWidth);
-      return node.subtreeWidth;
-    };
+      // Set y position for all nodes at this depth
+      for (const node of nodes) {
+        node.y = 50 + depth * levelHeight;
+      }
+    }
     
-    calculateSubtreeWidth(rootNode);
+    // Update subtreeWidth for the root
+    const allX = Array.from(allNodes.values()).map(n => n.x);
+    const minX = Math.min(...allX);
+    const maxX = Math.max(...allX);
+    rootNode.subtreeWidth = maxX - minX + nodeWidth;
+  };
+  
+  // Helper function to traverse the graph and collect all nodes
+  const traverseGraph = (root: MapNode): Map<number, MapNode> => {
+    const allNodes = new Map<number, MapNode>();
+    const visited = new Set<number>();
+    const queue: MapNode[] = [root];
     
-    const positionNodes = (node: MapNode, x: number, y: number) => {
-      node.x = x;
-      node.y = y;
+    while (queue.length > 0) {
+      const node = queue.shift()!;
+      if (visited.has(node.id)) continue;
       
-      if (node.children.length === 0) return;
+      visited.add(node.id);
+      allNodes.set(node.id, node);
       
-      let currentX = x - (node.subtreeWidth! / 2);
-      
-      node.children.forEach((child) => {
-        const childX = currentX + (child.subtreeWidth! / 2);
-        positionNodes(child, childX, y + levelHeight);
-        currentX += child.subtreeWidth! + siblingSpacing;
-      });
-    };
+      // Use nextRooms for traversal to ensure we follow actual connections
+      for (const childId of node.nextRooms) {
+        if (childId > 0 && !visited.has(childId)) {
+          // Find child in already visited nodes first
+          let child = allNodes.get(childId);
+          if (!child) {
+            // If not found, search in the tree structure
+            const searchQueue: MapNode[] = [root];
+            const searchVisited = new Set<number>();
+            while (searchQueue.length > 0) {
+              const searchNode = searchQueue.shift()!;
+              if (searchNode.id === childId) {
+                child = searchNode;
+                break;
+              }
+              if (searchVisited.has(searchNode.id)) continue;
+              searchVisited.add(searchNode.id);
+              searchQueue.push(...searchNode.children);
+            }
+          }
+          if (child) {
+            queue.push(child);
+          }
+        }
+      }
+    }
     
-    const totalWidth = rootNode.subtreeWidth || 1000;
-    const startX = Math.max(totalWidth / 2, 400);
-    
-    positionNodes(rootNode, startX, 50);
+    return allNodes;
+  };
+  
+  // Helper function to find a node by ID in the graph
+  const findNodeById = (root: MapNode, id: number): MapNode | null => {
+    const allNodes = traverseGraph(root);
+    return allNodes.get(id) || null;
   };
 
   const selectNode = (node: MapNode) => {
-    setSelectedNode(node);
-    setDoorCount(node.doorCount);
-    setMonsterIndex(node.monsterIndex1 || 1);
-  };
-
-  const updateDoorCount = (newDoorCount: number) => {
-    if (!selectedNode || !root) return;
-    setDoorCount(newDoorCount);
-    
-    if (newDoorCount !== selectedNode.doorCount) {
-      selectedNode.updateDoorCount(newDoorCount, maxDepth, nodeIdCounter.current);
-      calculateNodePositions(root);
-      // Force re-render by creating a new root reference
-      setRoot({...root});
+    if (editChildrenMode && selectedNode && selectedNode !== node) {
+      // In edit children mode, clicking another node adds/removes it as a child
+      toggleChildNode(node);
+    } else {
+      // Normal selection mode
+      setSelectedNode(node);
+      setMonsterIndex(node.monsterIndex1 || 1);
+      setEditChildrenMode(false);
     }
   };
 
@@ -105,9 +220,87 @@ export default function MapEditor() {
     
     if (selectedNode.roomType === RoomType.BATTLE) {
       selectedNode.monsterIndex1 = newMonsterIndex;
-      // Force re-render by creating a new root reference
-      setRoot({...root});
+      // Force re-render
+      setGraphVersion(v => v + 1);
+      setRoot(root);
     }
+  };
+
+  const toggleChildNode = (targetNode: MapNode) => {
+    if (!selectedNode || !root || targetNode === selectedNode) return;
+    
+    // Check if targetNode is already referenced in selectedNode's nextRooms
+    const roomIndex = selectedNode.nextRooms.indexOf(targetNode.id);
+    
+    if (roomIndex !== -1) {
+      // Remove the reference from nextRooms
+      selectedNode.nextRooms[roomIndex] = 0;
+      
+      // Remove from children array
+      const childIndex = selectedNode.children.findIndex(child => child.id === targetNode.id);
+      if (childIndex !== -1) {
+        selectedNode.children.splice(childIndex, 1);
+      }
+      
+    } else if (selectedNode.nextRooms.filter(id => id > 0).length < 4) {
+      // Add as a reference if we have room (max 4 doors) and it's not already a child
+      
+      // Check if this node is already a child (shouldn't add duplicates)
+      if (selectedNode.nextRooms.includes(targetNode.id)) {
+        return; // Already a child, do nothing
+      }
+      
+      // Find first empty slot in nextRooms
+      for (let i = 0; i < 7; i++) {
+        if (selectedNode.nextRooms[i] === 0) {
+          selectedNode.nextRooms[i] = targetNode.id;
+          break;
+        }
+      }
+      
+      // Add to children array - this is important for graph traversal
+      if (!selectedNode.children.some(child => child.id === targetNode.id)) {
+        selectedNode.children.push(targetNode);
+      }
+      
+    }
+    
+    // Recalculate positions for the new graph structure
+    calculateNodePositions(root);
+    
+    // Force React to re-render the graph by incrementing version
+    setGraphVersion(v => v + 1);
+    setRoot(root);
+  };
+
+  const addNewNode = () => {
+    if (!selectedNode || !root || selectedNode.nextRooms.filter(id => id > 0).length >= 4) return;
+    
+    // Create a new GOAL node
+    const newNode = new MapNode(nodeIdCounter.current.value++, selectedNode.depth + 1, maxDepth, false);
+    newNode.roomType = RoomType.GOAL;
+    newNode.monsterIndex1 = 0;
+    newNode.parent = selectedNode;
+    newNode.nextRooms = [0, 0, 0, 0, 0, 0, 0];
+    newNode.children = [];
+    
+    // Add to parent's children array
+    selectedNode.children.push(newNode);
+    
+    // Find first empty slot in nextRooms
+    for (let i = 0; i < 7; i++) {
+      if (selectedNode.nextRooms[i] === 0) {
+        selectedNode.nextRooms[i] = newNode.id;
+        break;
+      }
+    }
+    
+    // Recalculate positions for the new graph structure
+    calculateNodePositions(root);
+    
+    // Force React to re-render the graph by incrementing version
+    setGraphVersion(v => v + 1);
+    setRoot(root);
   };
 
   const zoomIn = () => {
@@ -197,6 +390,48 @@ export default function MapEditor() {
     return Math.max(node.id, ...childIds, 0);
   };
 
+  const renderGraph = (rootNode: MapNode): React.ReactElement => {
+    const nodes: React.ReactElement[] = [];
+    const edges: React.ReactElement[] = [];
+    
+    // Use the shared traverseGraph function to get all nodes
+    const allNodes = traverseGraph(rootNode);
+    
+    // Render all nodes and their edges
+    allNodes.forEach(node => {
+      // Render this node
+      nodes.push(renderNode(node));
+      
+      // Render edges based on nextRooms connections
+      node.nextRooms.forEach((childId) => {
+        if (childId > 0) {
+          const child = allNodes.get(childId);
+          if (child) {
+            // Draw edge - each parent-child pair is unique now
+            edges.push(
+              <line
+                key={`edge-${node.id}-${child.id}`}
+                x1={node.x}
+                y1={node.y + 25}
+                x2={child.x}
+                y2={child.y - 25}
+                stroke="#cbd5e0"
+                strokeWidth={2}
+              />
+            );
+          }
+        }
+      });
+    });
+    
+    return (
+      <g>
+        {edges}
+        {nodes}
+      </g>
+    );
+  };
+
   const renderNode = (node: MapNode): React.ReactElement => {
     const getMonsterName = (index: number): string => {
       const monsters = ['', 'GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
@@ -204,6 +439,15 @@ export default function MapEditor() {
     };
 
     const getNodeColor = () => {
+      // Highlight potential children/parents in edit mode
+      if (editChildrenMode && selectedNode) {
+        if (selectedNode.nextRooms.includes(node.id)) {
+          return '#4299e1'; // Blue for current children (referenced in nextRooms)
+        }
+        if (node !== selectedNode && selectedNode.nextRooms.filter(id => id > 0).length < 4) {
+          return '#9f7aea'; // Purple for potential children
+        }
+      }
       if (node.roomType === RoomType.GOAL) return '#48bb78';
       if (node.monsterIndex1 === 1) return '#63b3ed';
       if (node.monsterIndex1 === 2) return '#f6ad55';
@@ -214,16 +458,6 @@ export default function MapEditor() {
 
     return (
       <g key={node.id}>
-        {node.parent && (
-          <line
-            x1={node.parent.x}
-            y1={node.parent.y + 25}
-            x2={node.x}
-            y2={node.y - 25}
-            stroke="#cbd5e0"
-            strokeWidth={2}
-          />
-        )}
         <g
           transform={`translate(${node.x}, ${node.y})`}
           style={{ cursor: 'pointer' }}
@@ -248,11 +482,7 @@ export default function MapEditor() {
           <text y={10} fill="white" fontSize={11} fontWeight={500} textAnchor="middle">
             {node.roomType === RoomType.BATTLE ? getMonsterName(node.monsterIndex1) : ''}
           </text>
-          <text y={25} fill="white" fontSize={10} textAnchor="middle">
-            {node.roomType === RoomType.BATTLE ? `Doors: ${node.doorCount}` : ''}
-          </text>
         </g>
-        {node.children.map(child => renderNode(child))}
       </g>
     );
   };
@@ -305,7 +535,10 @@ export default function MapEditor() {
       <div className={styles.editorContainer}>
         <div 
           className={styles.treeCanvas}
-          onClick={() => setSelectedNode(null)}
+          onClick={() => {
+            setSelectedNode(null);
+            setEditChildrenMode(false);
+          }}
         >
           {root && (
             <div 
@@ -314,16 +547,18 @@ export default function MapEditor() {
               onClick={(e) => e.stopPropagation()}
             >
               <svg
+                key={`graph-${graphVersion}`}
                 width={Math.max((root.subtreeWidth || 0) + 200, 1000)}
                 height={(maxDepth + 1) * 150 + 100}
                 onClick={(e) => {
                   // Check if clicking on SVG background (not a node)
                   if (e.target === e.currentTarget) {
                     setSelectedNode(null);
+                    setEditChildrenMode(false);
                   }
                 }}
               >
-                {renderNode(root)}
+                {renderGraph(root)}
               </svg>
             </div>
           )}
@@ -342,41 +577,47 @@ export default function MapEditor() {
                 Room Type: <span className={styles.editorValue}>{selectedNode.roomType === RoomType.BATTLE ? 'BATTLE' : selectedNode.roomType === RoomType.GOAL ? 'GOAL' : 'NULL'}</span>
               </label>
             </div>
+            <div className={styles.editorField}>
+              <label className={styles.editorLabel}>
+                <input
+                  type="checkbox"
+                  checked={editChildrenMode}
+                  onChange={(e) => setEditChildrenMode(e.target.checked)}
+                />
+                Edit Children Mode
+              </label>
+            </div>
+            {editChildrenMode && (
+              <div className={styles.editorField}>
+                <button 
+                  className={styles.button}
+                  onClick={addNewNode}
+                  disabled={selectedNode.children.length >= 4}
+                >
+                  Add Node
+                </button>
+                <div style={{ fontSize: '12px', marginTop: '8px', color: '#666' }}>
+                  Click nodes to add/remove as children
+                </div>
+              </div>
+            )}
             {selectedNode.roomType === RoomType.BATTLE && (
-              <>
-                <div className={styles.editorField}>
-                  <label className={styles.editorLabel} htmlFor="doorCountSelect">
-                    Door Count:
-                  </label>
-                  <select
-                    id="doorCountSelect"
-                    className={styles.select}
-                    value={doorCount}
-                    onChange={(e) => updateDoorCount(parseInt(e.target.value))}
-                  >
-                    <option value={1}>1</option>
-                    <option value={2}>2</option>
-                    <option value={3}>3</option>
-                    <option value={4}>4</option>
-                  </select>
-                </div>
-                <div className={styles.editorField}>
-                  <label className={styles.editorLabel} htmlFor="monsterSelect">
-                    Monster Index:
-                  </label>
-                  <select
-                    id="monsterSelect"
-                    className={styles.select}
-                    value={monsterIndex}
-                    onChange={(e) => updateMonsterIndex(parseInt(e.target.value))}
-                  >
-                    <option value={1}>1 - Goblin</option>
-                    <option value={2}>2 - Thicc Goblin</option>
-                    <option value={3}>3 - Troll</option>
-                    <option value={4}>4 - Orc</option>
-                  </select>
-                </div>
-              </>
+              <div className={styles.editorField}>
+                <label className={styles.editorLabel} htmlFor="monsterSelect">
+                  Monster Index:
+                </label>
+                <select
+                  id="monsterSelect"
+                  className={styles.select}
+                  value={monsterIndex}
+                  onChange={(e) => updateMonsterIndex(parseInt(e.target.value))}
+                >
+                  <option value={1}>1 - Goblin</option>
+                  <option value={2}>2 - Thicc Goblin</option>
+                  <option value={3}>3 - Troll</option>
+                  <option value={4}>4 - Orc</option>
+                </select>
+              </div>
             )}
             {selectedNode.roomType === RoomType.GOAL && (
               <div className={styles.editorField}>

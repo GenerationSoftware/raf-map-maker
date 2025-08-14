@@ -1,19 +1,24 @@
 # Game Map Editor
 
-A tree-based game map editor for creating dungeon layouts with monsters and rooms.
+[![Tests](https://github.com/brendanasselstine/map-maker/actions/workflows/tests.yml/badge.svg)](https://github.com/brendanasselstine/map-maker/actions/workflows/tests.yml)
+
+A graph-based game map editor for creating dungeon layouts with monsters and rooms.
 
 ## Features
 
-- **Tree-based map generation** with configurable depth (1-10 levels)
+- **Graph-based map generation** with configurable depth (1-10 levels)
+- **Shared goal nodes** - multiple paths can lead to the same destination
 - **Monster types** with difficulty scaling by depth:
   - Goblin (easiest, blue)
   - Thicc Goblin (orange)
   - Troll (red)  
   - Orc (hardest, purple)
-- **Interactive editing** - click nodes to modify door counts and monster types
+- **Interactive editing mode** - add/remove connections between nodes visually
+- **Smart node positioning** - automatic layout with parent-child centering
 - **Zoom controls** - zoom from 10% to 200% for easy navigation
-- **Save/Load** - export and import maps as JSON files
-- **Visual feedback** - color-coded nodes by monster type
+- **Save/Load** - export and import maps as JSON files with validation
+- **Visual feedback** - color-coded nodes by monster type and edit mode
+- **Comprehensive test suite** - 95%+ code coverage with unit and integration tests
 
 ## Getting Started
 
@@ -36,22 +41,59 @@ npm start
 ## How to Use
 
 1. **Generate a Map**: Set the desired depth and click "Generate Map"
-2. **Edit Nodes**: Click any node to select it and modify its properties
-3. **Change Door Count**: Adjusts the number of child nodes (1-4)
-4. **Change Monster Type**: Select different monsters for any node (including root)
-5. **Navigate**: Use zoom controls to view large maps easily
-6. **Save/Load**: Export your map as JSON or import existing maps
+2. **Select a Node**: Click any node to select it and view its properties
+3. **Edit Children Mode**: Toggle "Edit Children Mode" to modify connections
+4. **Add/Remove Connections**: In edit mode, click nodes to add/remove them as children
+5. **Add New Nodes**: Use the "Add Node" button to create new goal nodes
+6. **Change Monster Type**: Select different monsters for battle nodes
+7. **Navigate**: Use zoom controls to view large maps easily
+8. **Save/Load**: Export your map as JSON or import existing maps
 
 ## Map Structure
 
-Each node in the tree contains:
-- `id`: Unique identifier
-- `depth`: Level in the tree (0 for root)
-- `roomType`: Either "ROOT" or "MONSTER"
-- `doorCount`: Number of child nodes (0-4)
-- `monsterIndex1`: Monster type (can be any monster type or null for root nodes)
-- `children`: Array of child nodes
+Each node in the graph contains:
+- `id`: Unique identifier (sequential starting from 1)
+- `roomType`: Integer enum (0=NULL, 2=BATTLE, 3=GOAL)
+- `monsterIndex1`: Monster type string or null for non-battle rooms
+- `nextRooms`: Array of 7 room IDs (0 means no connection)
+
+Room types:
+- **NULL (0)**: Starting nodes with no monsters
+- **BATTLE (2)**: Combat rooms with monsters (1-4 connections)
+- **GOAL (3)**: End rooms with no monsters or connections
 
 ## JSON Schema
 
 The map data follows a strict schema defined in `public/map-schema.json`. This ensures data integrity when loading maps and provides validation for external tools.
+
+## Testing
+
+Run the comprehensive test suite:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+The test suite includes:
+- **Unit tests** for all core modules
+- **Integration tests** for graph operations
+- **End-to-end tests** covering the full generate→edit→save→load workflow
+- **95%+ code coverage** ensuring reliability
+
+## Architecture
+
+The codebase is organized into clean, testable modules:
+
+- `lib/types.ts` - Core data structures and MapNode class
+- `lib/graph-operations.ts` - Graph traversal and manipulation
+- `lib/map-generator.ts` - Map generation logic
+- `lib/serialization.ts` - Save/load operations
+- `lib/validator.ts` - JSON schema validation
+- `components/MapEditor.tsx` - React UI component

@@ -18,7 +18,6 @@ export class MapNode {
   id: number;
   depth: number;
   roomType: RoomType;
-  doorCount: number;
   monsterIndex1: number;
   nextRooms: number[];
   children: MapNode[];
@@ -31,7 +30,6 @@ export class MapNode {
     this.id = id;
     this.depth = depth;
     this.roomType = (depth >= maxDepth) ? RoomType.GOAL : RoomType.BATTLE;
-    this.doorCount = this.roomType === RoomType.GOAL ? 0 : Math.floor(Math.random() * 4) + 1;
     this.monsterIndex1 = this.roomType === RoomType.GOAL ? 0 : this.getRandomMonsterIndex(depth, maxDepth);
     this.nextRooms = new Array(7).fill(0);
     this.children = [];
@@ -74,57 +72,52 @@ export class MapNode {
     return weights.length;
   }
 
-  generateChildren(maxDepth: number, nodeIdCounter: { value: number }): { value: number } {
+  generateChildren(maxDepth: number, nodeIdCounter: { value: number }, sharedGoalNode?: MapNode): { value: number; goalNode?: MapNode } {
     if (this.depth >= maxDepth || this.roomType === RoomType.GOAL) {
-      this.doorCount = 0;
       this.children = [];
       this.roomType = RoomType.GOAL;
       this.monsterIndex1 = 0;
-      return nodeIdCounter;
+      return { value: nodeIdCounter.value };
     }
 
     this.children = [];
-    for (let i = 0; i < this.doorCount; i++) {
-      const child = new MapNode(nodeIdCounter.value++, this.depth + 1, maxDepth, false);
-      child.parent = this;
-      this.children.push(child);
-      this.nextRooms[i] = child.id;
-      nodeIdCounter = child.generateChildren(maxDepth, nodeIdCounter);
-    }
-    return nodeIdCounter;
-  }
-
-  updateDoorCount(newCount: number, maxDepth: number, nodeIdCounter: { value: number }): { value: number } {
-    if (this.roomType === RoomType.GOAL) return nodeIdCounter;
+    let goalNode = sharedGoalNode;
     
-    this.doorCount = newCount;
+    // Check if this is a penultimate node (depth = maxDepth - 1)
+    const isPenultimate = this.depth === maxDepth - 1;
     
-    if (this.depth >= maxDepth) {
-      this.doorCount = 0;
-      this.children = [];
-      this.roomType = RoomType.GOAL;
-      this.monsterIndex1 = 0;
-      return nodeIdCounter;
-    }
-
-    while (this.children.length > newCount) {
-      const removed = this.children.pop();
-      if (removed) {
-        const index = this.nextRooms.indexOf(removed.id);
-        if (index >= 0) this.nextRooms[index] = 0;
+    if (isPenultimate) {
+      // Penultimate nodes all share a single GOAL node
+      if (!goalNode) {
+        // Create the shared GOAL node if it doesn't exist
+        goalNode = new MapNode(nodeIdCounter.value++, this.depth + 1, maxDepth, false);
+        goalNode.roomType = RoomType.GOAL;
+        goalNode.monsterIndex1 = 0;
       }
+      
+      // Penultimate nodes have only one connection to the shared GOAL node
+      this.nextRooms[0] = goalNode.id;
+      this.children = [goalNode]; // Store reference for tree traversal
+      
+      return { value: nodeIdCounter.value, goalNode };
+    } else {
+      // Non-penultimate nodes generate normal children
+      const numChildren = Math.floor(Math.random() * 4) + 1;
+      for (let i = 0; i < numChildren; i++) {
+        const child = new MapNode(nodeIdCounter.value++, this.depth + 1, maxDepth, false);
+        child.parent = this;
+        this.children.push(child);
+        this.nextRooms[i] = child.id;
+        const result = child.generateChildren(maxDepth, nodeIdCounter, goalNode);
+        nodeIdCounter.value = result.value;
+        if (result.goalNode) {
+          goalNode = result.goalNode;
+        }
+      }
+      return { value: nodeIdCounter.value, goalNode };
     }
-
-    while (this.children.length < newCount) {
-      const child = new MapNode(nodeIdCounter.value++, this.depth + 1, maxDepth, false);
-      child.parent = this;
-      this.children.push(child);
-      this.nextRooms[this.children.length - 1] = child.id;
-      nodeIdCounter = child.generateChildren(maxDepth, nodeIdCounter);
-    }
-
-    return nodeIdCounter;
   }
+
 
   toJSON(): MapNodeData {
     const monsters = ['', 'GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
@@ -137,17 +130,56 @@ export class MapNode {
   }
 
   toFlatJSON(): MapNodeData[] {
-    const result: MapNodeData[] = [this.toJSON()];
-    for (const child of this.children) {
-      result.push(...child.toFlatJSON());
+    const result: MapNodeData[] = [];
+    const visited = new Set<number>();
+    const queue: MapNode[] = [this];
+    const nodeMap = new Map<number, MapNode>();
+    
+    // BFS to collect all nodes
+    while (queue.length > 0) {
+      const node = queue.shift()!;
+      if (visited.has(node.id)) continue;
+      
+      visited.add(node.id);
+      nodeMap.set(node.id, node);
+      
+      // Add children to queue based on nextRooms to follow actual connections
+      for (const childId of node.nextRooms) {
+        if (childId > 0) {
+          const child = node.children.find(c => c.id === childId);
+          if (child && !visited.has(child.id)) {
+            queue.push(child);
+          }
+        }
+      }
     }
+    
+    // Create ID mapping to ensure sequential IDs
+    const oldToNew = new Map<number, number>();
+    const sortedNodes = Array.from(nodeMap.values()).sort((a, b) => a.id - b.id);
+    sortedNodes.forEach((node, index) => {
+      oldToNew.set(node.id, index + 1);
+    });
+    
+    // Export with remapped IDs
+    for (const node of sortedNodes) {
+      const data = node.toJSON();
+      data.id = oldToNew.get(node.id)!;
+      
+      // Remap nextRooms IDs
+      data.nextRooms = node.nextRooms.map(childId => 
+        childId > 0 ? (oldToNew.get(childId) || 0) : 0
+      );
+      
+      result.push(data);
+    }
+    
     return result;
   }
 
   static fromJSON(data: MapNodeData, parent: MapNode | null = null, depth: number = 0): MapNode {
     const node = new MapNode(data.id, depth, 0, false);
     node.roomType = data.roomType;
-    node.doorCount = data.nextRooms.filter(id => id > 0).length;
     
     // Convert monster string back to index
     if (data.monsterIndex1 === null) {
