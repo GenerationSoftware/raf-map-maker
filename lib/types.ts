@@ -2,14 +2,13 @@ export type MonsterType = 'GOBLIN' | 'THICC_GOBLIN' | 'TROLL' | 'ORC';
 
 export enum RoomType {
   NULL = 0,
-  ROOT = 1,  // Not used anymore but kept for enum consistency
-  BATTLE = 2,
-  GOAL = 3
+  BATTLE = 1,
+  GOAL = 2
 }
 
 export interface MapNodeData {
   id: number;
-  roomType: number;  // Using integer enum values: 0=NULL, 2=BATTLE, 3=GOAL
+  roomType: number;  // Using integer enum values: 0=NULL, 1=BATTLE, 2=GOAL
   monsterIndex1: string | null;  // Monster type string or null
   nextRooms: number[];  // Array of 7 room IDs
 }

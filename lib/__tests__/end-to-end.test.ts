@@ -48,16 +48,16 @@ describe('End-to-End Map Workflow', () => {
     expect(battleNode!.nextRooms.includes(newGoalNode.id)).toBe(true);
     expect(battleNode!.children.some(c => c.id === newGoalNode.id)).toBe(true);
     
-    // Remove a child from another node
-    const nodeWithChildren = Array.from(allNodes.values()).find(
-      n => n.nextRooms.filter(id => id > 0).length > 0 && n.id !== battleNode!.id
+    // Remove a child from another node (only if it has more than 1 child to avoid validation errors)
+    const nodeWithMultipleChildren = Array.from(allNodes.values()).find(
+      n => n.nextRooms.filter(id => id > 0).length > 1 && n.id !== battleNode!.id
     );
-    if (nodeWithChildren) {
-      const childToRemove = nodeWithChildren.nextRooms.find(id => id > 0);
+    if (nodeWithMultipleChildren) {
+      const childToRemove = nodeWithMultipleChildren.nextRooms.find(id => id > 0);
       if (childToRemove) {
-        const removeResult = removeChildNode(nodeWithChildren, childToRemove);
+        const removeResult = removeChildNode(nodeWithMultipleChildren, childToRemove);
         expect(removeResult).toBe(true);
-        console.log(`Removed child ${childToRemove} from node ${nodeWithChildren.id}`);
+        console.log(`Removed child ${childToRemove} from node ${nodeWithMultipleChildren.id}`);
       }
     }
     

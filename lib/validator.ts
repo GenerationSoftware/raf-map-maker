@@ -74,13 +74,13 @@ export class MapValidator {
 
       // Validate GOAL rooms have no children
       const nonZeroRooms = node.nextRooms.filter(id => id > 0).length;
-      if (node.roomType === 3 && nonZeroRooms > 0) { // GOAL
+      if (node.roomType === 2 && nonZeroRooms > 0) { // GOAL
         this.errors.push(`Node ${node.id}: GOAL rooms cannot have children`);
         valid = false;
       }
       
       // BATTLE rooms should have at least 1 child
-      if (node.roomType === 2 && nonZeroRooms === 0) { // BATTLE
+      if (node.roomType === 1 && nonZeroRooms === 0) { // BATTLE
         this.errors.push(`Node ${node.id}: BATTLE rooms should have children or be GOAL type`);
         valid = false;
       }
@@ -111,19 +111,19 @@ export class MapValidator {
     }
 
     // Validate room type (integer enum)
-    if (![0, 2, 3].includes(node.roomType)) {
-      this.errors.push(`${path}: roomType must be 0 (NULL), 2 (BATTLE), or 3 (GOAL)`);
+    if (![0, 1, 2].includes(node.roomType)) {
+      this.errors.push(`${path}: roomType must be 0 (NULL), 1 (BATTLE), or 2 (GOAL)`);
       valid = false;
     }
 
     // Validate monster index
     const validMonsters = ['GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
-    if (node.roomType === 2) { // BATTLE
+    if (node.roomType === 1) { // BATTLE
       if (typeof node.monsterIndex1 !== 'string' || !validMonsters.includes(node.monsterIndex1)) {
         this.errors.push(`${path}: BATTLE rooms must have monsterIndex1 as one of: ${validMonsters.join(', ')}`);
         valid = false;
       }
-    } else if (node.roomType === 0 || node.roomType === 3) { // NULL or GOAL
+    } else if (node.roomType === 0 || node.roomType === 2) { // NULL or GOAL
       if (node.monsterIndex1 !== null) {
         this.errors.push(`${path}: NULL and GOAL rooms must have monsterIndex1 = null`);
         valid = false;
@@ -148,13 +148,13 @@ export class MapValidator {
       }
       
       // Validate that BATTLE rooms have 1-4 children
-      if (node.roomType === 2 && (nonZeroCount < 1 || nonZeroCount > 4)) { // BATTLE
+      if (node.roomType === 1 && (nonZeroCount < 1 || nonZeroCount > 4)) { // BATTLE
         this.errors.push(`${path}: BATTLE rooms must have 1-4 children (doors)`);
         valid = false;
       }
       
       // Validate that GOAL rooms have no children
-      if (node.roomType === 3 && nonZeroCount > 0) { // GOAL
+      if (node.roomType === 2 && nonZeroCount > 0) { // GOAL
         this.errors.push(`${path}: GOAL rooms must have no children`);
         valid = false;
       }

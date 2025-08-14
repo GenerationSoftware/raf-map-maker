@@ -53,14 +53,14 @@ npm start
 
 Each node in the graph contains:
 - `id`: Unique identifier (sequential starting from 1)
-- `roomType`: Integer enum (0=NULL, 2=BATTLE, 3=GOAL)
+- `roomType`: Integer enum (0=NULL, 1=BATTLE, 2=GOAL)
 - `monsterIndex1`: Monster type string or null for non-battle rooms
 - `nextRooms`: Array of 7 room IDs (0 means no connection)
 
 Room types:
 - **NULL (0)**: Starting nodes with no monsters
-- **BATTLE (2)**: Combat rooms with monsters (1-4 connections)
-- **GOAL (3)**: End rooms with no monsters or connections
+- **BATTLE (1)**: Combat rooms with monsters (1-4 connections)
+- **GOAL (2)**: End rooms with no monsters or connections
 
 ## JSON Schema
 
