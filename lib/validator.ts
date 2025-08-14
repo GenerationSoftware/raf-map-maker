@@ -74,14 +74,13 @@ export class MapValidator {
 
       // Validate GOAL rooms have no children
       const nonZeroRooms = node.nextRooms.filter(id => id > 0).length;
-      if (node.roomType === 'GOAL' && nonZeroRooms > 0) {
+      if (node.roomType === 3 && nonZeroRooms > 0) { // GOAL
         this.errors.push(`Node ${node.id}: GOAL rooms cannot have children`);
         valid = false;
       }
       
-      // BATTLE rooms should have at least 1 child (unless at max depth)
-      if (node.roomType === 'BATTLE' && nonZeroRooms === 0) {
-        // This is acceptable only if this is a leaf node that should be GOAL
+      // BATTLE rooms should have at least 1 child
+      if (node.roomType === 2 && nonZeroRooms === 0) { // BATTLE
         this.errors.push(`Node ${node.id}: BATTLE rooms should have children or be GOAL type`);
         valid = false;
       }
@@ -111,30 +110,26 @@ export class MapValidator {
       valid = false;
     }
 
-    // Validate room type
-    if (!['BATTLE', 'GOAL'].includes(node.roomType)) {
-      this.errors.push(`${path}: roomType must be BATTLE or GOAL`);
+    // Validate room type (integer enum)
+    if (![0, 2, 3].includes(node.roomType)) {
+      this.errors.push(`${path}: roomType must be 0 (NULL), 2 (BATTLE), or 3 (GOAL)`);
       valid = false;
     }
 
     // Validate monster index
-    if (typeof node.monsterIndex1 !== 'number' || node.monsterIndex1 < 0 || node.monsterIndex1 > 4) {
-      this.errors.push(`${path}: monsterIndex1 must be between 0 and 4`);
-      valid = false;
+    const validMonsters = ['GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
+    if (node.roomType === 2) { // BATTLE
+      if (typeof node.monsterIndex1 !== 'string' || !validMonsters.includes(node.monsterIndex1)) {
+        this.errors.push(`${path}: BATTLE rooms must have monsterIndex1 as one of: ${validMonsters.join(', ')}`);
+        valid = false;
+      }
+    } else if (node.roomType === 0 || node.roomType === 3) { // NULL or GOAL
+      if (node.monsterIndex1 !== null) {
+        this.errors.push(`${path}: NULL and GOAL rooms must have monsterIndex1 = null`);
+        valid = false;
+      }
     }
     
-    // Validate room type specific constraints
-    if (node.roomType === 'GOAL') {
-      if (node.monsterIndex1 !== 0) {
-        this.errors.push(`${path}: GOAL nodes must have monsterIndex1 = 0`);
-        valid = false;
-      }
-    } else if (node.roomType === 'BATTLE') {
-      if (node.monsterIndex1 === 0) {
-        this.errors.push(`${path}: BATTLE nodes must have monsterIndex1 > 0`);
-        valid = false;
-      }
-    }
 
     // Validate nextRooms array
     if (!Array.isArray(node.nextRooms) || node.nextRooms.length !== 7) {
@@ -153,13 +148,13 @@ export class MapValidator {
       }
       
       // Validate that BATTLE rooms have 1-4 children
-      if (node.roomType === 'BATTLE' && (nonZeroCount < 1 || nonZeroCount > 4)) {
+      if (node.roomType === 2 && (nonZeroCount < 1 || nonZeroCount > 4)) { // BATTLE
         this.errors.push(`${path}: BATTLE rooms must have 1-4 children (doors)`);
         valid = false;
       }
       
       // Validate that GOAL rooms have no children
-      if (node.roomType === 'GOAL' && nonZeroCount > 0) {
+      if (node.roomType === 3 && nonZeroCount > 0) { // GOAL
         this.errors.push(`${path}: GOAL rooms must have no children`);
         valid = false;
       }

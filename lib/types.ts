@@ -1,11 +1,17 @@
 export type MonsterType = 'GOBLIN' | 'THICC_GOBLIN' | 'TROLL' | 'ORC';
-export type RoomType = 'BATTLE' | 'GOAL';
+
+export enum RoomType {
+  NULL = 0,
+  ROOT = 1,  // Not used anymore but kept for enum consistency
+  BATTLE = 2,
+  GOAL = 3
+}
 
 export interface MapNodeData {
   id: number;
-  roomType: RoomType;
-  monsterIndex1: number;
-  nextRooms: number[];
+  roomType: number;  // Using integer enum values: 0=NULL, 2=BATTLE, 3=GOAL
+  monsterIndex1: string | null;  // Monster type string or null
+  nextRooms: number[];  // Array of 7 room IDs
 }
 
 export class MapNode {
@@ -24,9 +30,9 @@ export class MapNode {
   constructor(id: number, depth: number, maxDepth: number, isRoot: boolean = false) {
     this.id = id;
     this.depth = depth;
-    this.roomType = (depth >= maxDepth) ? 'GOAL' : 'BATTLE';
-    this.doorCount = this.roomType === 'GOAL' ? 0 : Math.floor(Math.random() * 4) + 1;
-    this.monsterIndex1 = this.roomType === 'GOAL' ? 0 : this.getRandomMonsterIndex(depth, maxDepth);
+    this.roomType = (depth >= maxDepth) ? RoomType.GOAL : RoomType.BATTLE;
+    this.doorCount = this.roomType === RoomType.GOAL ? 0 : Math.floor(Math.random() * 4) + 1;
+    this.monsterIndex1 = this.roomType === RoomType.GOAL ? 0 : this.getRandomMonsterIndex(depth, maxDepth);
     this.nextRooms = new Array(7).fill(0);
     this.children = [];
     this.parent = null;
@@ -69,10 +75,10 @@ export class MapNode {
   }
 
   generateChildren(maxDepth: number, nodeIdCounter: { value: number }): { value: number } {
-    if (this.depth >= maxDepth || this.roomType === 'GOAL') {
+    if (this.depth >= maxDepth || this.roomType === RoomType.GOAL) {
       this.doorCount = 0;
       this.children = [];
-      this.roomType = 'GOAL';
+      this.roomType = RoomType.GOAL;
       this.monsterIndex1 = 0;
       return nodeIdCounter;
     }
@@ -89,14 +95,14 @@ export class MapNode {
   }
 
   updateDoorCount(newCount: number, maxDepth: number, nodeIdCounter: { value: number }): { value: number } {
-    if (this.roomType === 'GOAL') return nodeIdCounter;
+    if (this.roomType === RoomType.GOAL) return nodeIdCounter;
     
     this.doorCount = newCount;
     
     if (this.depth >= maxDepth) {
       this.doorCount = 0;
       this.children = [];
-      this.roomType = 'GOAL';
+      this.roomType = RoomType.GOAL;
       this.monsterIndex1 = 0;
       return nodeIdCounter;
     }
@@ -121,10 +127,11 @@ export class MapNode {
   }
 
   toJSON(): MapNodeData {
+    const monsters = ['', 'GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
     return {
       id: this.id,
       roomType: this.roomType,
-      monsterIndex1: this.monsterIndex1,
+      monsterIndex1: (this.roomType === RoomType.NULL || this.roomType === RoomType.GOAL) ? null : monsters[this.monsterIndex1] || null,
       nextRooms: [...this.nextRooms]
     };
   }
@@ -141,7 +148,16 @@ export class MapNode {
     const node = new MapNode(data.id, depth, 0, false);
     node.roomType = data.roomType;
     node.doorCount = data.nextRooms.filter(id => id > 0).length;
-    node.monsterIndex1 = data.monsterIndex1;
+    
+    // Convert monster string back to index
+    if (data.monsterIndex1 === null) {
+      node.monsterIndex1 = 0;
+    } else {
+      const monsters = ['', 'GOBLIN', 'THICC_GOBLIN', 'TROLL', 'ORC'];
+      node.monsterIndex1 = monsters.indexOf(data.monsterIndex1);
+      if (node.monsterIndex1 === -1) node.monsterIndex1 = 1; // Default to GOBLIN if unknown
+    }
+    
     node.nextRooms = data.nextRooms ? [...data.nextRooms] : new Array(7).fill(0);
     node.parent = parent;
     node.children = [];

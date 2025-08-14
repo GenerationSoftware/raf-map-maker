@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './MapEditor.module.css';
-import { MapNode, MapNodeData } from '@/lib/types';
+import { MapNode, MapNodeData, RoomType } from '@/lib/types';
 import { MapValidator } from '@/lib/validator';
 
 export default function MapEditor() {
@@ -87,19 +87,27 @@ export default function MapEditor() {
     setMonsterIndex(node.monsterIndex1 || 1);
   };
 
-  const applyNodeChanges = () => {
+  const updateDoorCount = (newDoorCount: number) => {
     if (!selectedNode || !root) return;
-
-    if (selectedNode.roomType === 'BATTLE') {
-      selectedNode.monsterIndex1 = monsterIndex;
-    }
-
-    if (doorCount !== selectedNode.doorCount) {
-      selectedNode.updateDoorCount(doorCount, maxDepth, nodeIdCounter.current);
-      calculateNodePositions(root);
-    }
+    setDoorCount(newDoorCount);
     
-    setRoot(root);
+    if (newDoorCount !== selectedNode.doorCount) {
+      selectedNode.updateDoorCount(newDoorCount, maxDepth, nodeIdCounter.current);
+      calculateNodePositions(root);
+      // Force re-render by creating a new root reference
+      setRoot({...root});
+    }
+  };
+
+  const updateMonsterIndex = (newMonsterIndex: number) => {
+    if (!selectedNode || !root) return;
+    setMonsterIndex(newMonsterIndex);
+    
+    if (selectedNode.roomType === RoomType.BATTLE) {
+      selectedNode.monsterIndex1 = newMonsterIndex;
+      // Force re-render by creating a new root reference
+      setRoot({...root});
+    }
   };
 
   const zoomIn = () => {
@@ -196,7 +204,7 @@ export default function MapEditor() {
     };
 
     const getNodeColor = () => {
-      if (node.roomType === 'GOAL') return '#48bb78';
+      if (node.roomType === RoomType.GOAL) return '#48bb78';
       if (node.monsterIndex1 === 1) return '#63b3ed';
       if (node.monsterIndex1 === 2) return '#f6ad55';
       if (node.monsterIndex1 === 3) return '#fc8181';
@@ -219,7 +227,10 @@ export default function MapEditor() {
         <g
           transform={`translate(${node.x}, ${node.y})`}
           style={{ cursor: 'pointer' }}
-          onClick={() => selectNode(node)}
+          onClick={(e) => {
+            e.stopPropagation();
+            selectNode(node);
+          }}
         >
           <rect
             x={-60}
@@ -232,13 +243,13 @@ export default function MapEditor() {
             fill={getNodeColor()}
           />
           <text y={-5} fill="white" fontSize={12} fontWeight={500} textAnchor="middle">
-            {node.roomType}
+            {node.roomType === RoomType.BATTLE ? 'BATTLE' : node.roomType === RoomType.GOAL ? 'GOAL' : 'NULL'}
           </text>
           <text y={10} fill="white" fontSize={11} fontWeight={500} textAnchor="middle">
-            {node.roomType === 'BATTLE' ? getMonsterName(node.monsterIndex1) : ''}
+            {node.roomType === RoomType.BATTLE ? getMonsterName(node.monsterIndex1) : ''}
           </text>
           <text y={25} fill="white" fontSize={10} textAnchor="middle">
-            {node.roomType === 'BATTLE' ? `Doors: ${node.doorCount}` : ''}
+            {node.roomType === RoomType.BATTLE ? `Doors: ${node.doorCount}` : ''}
           </text>
         </g>
         {node.children.map(child => renderNode(child))}
@@ -292,15 +303,25 @@ export default function MapEditor() {
       </div>
       
       <div className={styles.editorContainer}>
-        <div className={styles.treeCanvas}>
+        <div 
+          className={styles.treeCanvas}
+          onClick={() => setSelectedNode(null)}
+        >
           {root && (
             <div 
               className={styles.svgContainer}
               style={{ transform: `scale(${currentZoom})` }}
+              onClick={(e) => e.stopPropagation()}
             >
               <svg
                 width={Math.max((root.subtreeWidth || 0) + 200, 1000)}
                 height={(maxDepth + 1) * 150 + 100}
+                onClick={(e) => {
+                  // Check if clicking on SVG background (not a node)
+                  if (e.target === e.currentTarget) {
+                    setSelectedNode(null);
+                  }
+                }}
               >
                 {renderNode(root)}
               </svg>
@@ -318,10 +339,10 @@ export default function MapEditor() {
             </div>
             <div className={styles.editorField}>
               <label className={styles.editorLabel}>
-                Room Type: <span className={styles.editorValue}>{selectedNode.roomType}</span>
+                Room Type: <span className={styles.editorValue}>{selectedNode.roomType === RoomType.BATTLE ? 'BATTLE' : selectedNode.roomType === RoomType.GOAL ? 'GOAL' : 'NULL'}</span>
               </label>
             </div>
-            {selectedNode.roomType === 'BATTLE' && (
+            {selectedNode.roomType === RoomType.BATTLE && (
               <>
                 <div className={styles.editorField}>
                   <label className={styles.editorLabel} htmlFor="doorCountSelect">
@@ -331,7 +352,7 @@ export default function MapEditor() {
                     id="doorCountSelect"
                     className={styles.select}
                     value={doorCount}
-                    onChange={(e) => setDoorCount(parseInt(e.target.value))}
+                    onChange={(e) => updateDoorCount(parseInt(e.target.value))}
                   >
                     <option value={1}>1</option>
                     <option value={2}>2</option>
@@ -347,7 +368,7 @@ export default function MapEditor() {
                     id="monsterSelect"
                     className={styles.select}
                     value={monsterIndex}
-                    onChange={(e) => setMonsterIndex(parseInt(e.target.value))}
+                    onChange={(e) => updateMonsterIndex(parseInt(e.target.value))}
                   >
                     <option value={1}>1 - Goblin</option>
                     <option value={2}>2 - Thicc Goblin</option>
@@ -357,19 +378,13 @@ export default function MapEditor() {
                 </div>
               </>
             )}
-            {selectedNode.roomType === 'GOAL' && (
+            {selectedNode.roomType === RoomType.GOAL && (
               <div className={styles.editorField}>
                 <label className={styles.editorLabel}>
                   This is a GOAL room (no monsters or doors)
                 </label>
               </div>
             )}
-            <button 
-              className={`${styles.button} ${styles.applyButton}`}
-              onClick={applyNodeChanges}
-            >
-              Apply Changes
-            </button>
           </div>
         )}
       </div>
