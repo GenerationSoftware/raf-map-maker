@@ -1,6 +1,6 @@
 # Game Map Editor
 
-[![Tests](https://github.com/brendanasselstine/map-maker/actions/workflows/tests.yml/badge.svg)](https://github.com/brendanasselstine/map-maker/actions/workflows/tests.yml)
+[![Tests](https://github.com/GenerationSoftware/raf-map-maker/actions/workflows/tests.yml/badge.svg)](https://github.com/GenerationSoftware/raf-map-maker/actions/workflows/tests.yml)
 
 A graph-based game map editor for creating dungeon layouts with monsters and rooms.
 
