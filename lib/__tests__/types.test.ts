@@ -64,7 +64,7 @@ describe('MapNode', () => {
       const json = node.toJSON();
       expect(json.id).toBe(1);
       expect(json.roomType).toBe(RoomType.BATTLE);
-      expect(json.monsterIndex1).toBe(2);
+      expect(json.roomData).toEqual({ monsterIndex1: 2 });
       expect(json.nextRooms).toEqual([2, 3, 0, 0, 0, 0]);
     });
 
@@ -73,7 +73,7 @@ describe('MapNode', () => {
       node.roomType = RoomType.GOAL;
       
       const json = node.toJSON();
-      expect(json.monsterIndex1).toBeNull();
+      expect(json.roomData).toBeNull();
     });
   });
 

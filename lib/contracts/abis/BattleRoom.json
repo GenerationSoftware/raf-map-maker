@@ -42,19 +42,6 @@
   },
   {
     "type": "function",
-    "name": "TURN_DURATION",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "battleFactory",
     "inputs": [],
     "outputs": [
@@ -122,24 +109,14 @@
             "internalType": "uint16"
           },
           {
-            "name": "monsterIndex1",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex2",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex3",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
             "name": "nextRooms",
             "type": "uint32[6]",
             "internalType": "uint32[6]"
+          },
+          {
+            "name": "roomData",
+            "type": "bytes",
+            "internalType": "bytes"
           }
         ]
       },
@@ -299,7 +276,7 @@
       {
         "name": "act",
         "type": "address",
-        "internalType": "address"
+        "internalType": "contract Act"
       },
       {
         "name": "partyId",
@@ -449,6 +426,19 @@
         "type": "uint32",
         "indexed": true,
         "internalType": "uint32"
+      },
+      {
+        "name": "data",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct BattleRoomData",
+        "components": [
+          {
+            "name": "monsterIndex1",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
       },
       {
         "name": "battle",

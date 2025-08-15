@@ -310,25 +310,6 @@
   },
   {
     "type": "function",
-    "name": "getPlayerHand",
-    "inputs": [
-      {
-        "name": "_playerId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "getPlayerStats",
     "inputs": [
       {
@@ -445,30 +426,6 @@
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "isCardInPlayerHand",
-    "inputs": [
-      {
-        "name": "_playerId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_cardId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -797,6 +754,25 @@
   },
   {
     "type": "function",
+    "name": "playerDeckIds",
+    "inputs": [
+      {
+        "name": "playerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "playerDeckManager",
     "inputs": [],
     "outputs": [
@@ -1105,6 +1081,25 @@
   },
   {
     "type": "function",
+    "name": "updatePlayerHand",
+    "inputs": [
+      {
+        "name": "_playerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "winner",
     "inputs": [],
     "outputs": [
@@ -1169,6 +1164,34 @@
         "type": "bool",
         "indexed": false,
         "internalType": "bool"
+      },
+      {
+        "name": "turnData",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct Turn",
+        "components": [
+          {
+            "name": "startedAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "duration",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endTurnCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "randomNumber",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "anonymous": false
@@ -1182,6 +1205,34 @@
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
+      },
+      {
+        "name": "turnData",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct Turn",
+        "components": [
+          {
+            "name": "startedAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "duration",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endTurnCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "randomNumber",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "anonymous": false

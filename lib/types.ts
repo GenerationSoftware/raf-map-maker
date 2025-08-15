@@ -7,10 +7,14 @@ export enum RoomType {
   GOAL = 2
 }
 
+export interface BattleRoomData {
+  monsterIndex1: number;  // Monster index (16-bit unsigned integer)
+}
+
 export interface MapNodeData {
   id: number;
   roomType: number;  // Using integer enum values: 0=NULL, 1=BATTLE, 2=GOAL
-  monsterIndex1: number | null;  // Monster index (16-bit unsigned integer) or null
+  roomData: BattleRoomData | null;  // Room-specific data, null for NULL/GOAL rooms
   nextRooms: number[];  // Array of 6 room IDs
 }
 
@@ -133,7 +137,7 @@ export class MapNode {
     return {
       id: this.id,
       roomType: this.roomType,
-      monsterIndex1: (this.roomType === RoomType.GOAL) ? null : this.monsterIndex1,
+      roomData: this.roomType === RoomType.BATTLE ? { monsterIndex1: this.monsterIndex1 } : null,
       nextRooms: [...this.nextRooms]
     };
   }
@@ -190,8 +194,12 @@ export class MapNode {
     const node = new MapNode(data.id, depth, 0, false);
     node.roomType = data.roomType;
     
-    // Monster index is already an integer
-    node.monsterIndex1 = data.monsterIndex1 || 0;
+    // Extract monster index from roomData if it's a BATTLE room
+    if (data.roomType === RoomType.BATTLE && data.roomData && 'monsterIndex1' in data.roomData) {
+      node.monsterIndex1 = data.roomData.monsterIndex1;
+    } else {
+      node.monsterIndex1 = 0;
+    }
     
     node.nextRooms = data.nextRooms ? [...data.nextRooms] : new Array(6).fill(0);
     node.parent = parent;

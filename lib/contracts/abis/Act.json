@@ -181,9 +181,9 @@
         "internalType": "contract Character"
       },
       {
-        "name": "tokens",
+        "name": "cards",
         "type": "tuple[]",
-        "internalType": "struct Token[]",
+        "internalType": "struct Cards[]",
         "components": [
           {
             "name": "deck",
@@ -191,9 +191,9 @@
             "internalType": "contract IDeck"
           },
           {
-            "name": "tokenId",
-            "type": "uint96",
-            "internalType": "uint96"
+            "name": "actionTypes",
+            "type": "uint32[]",
+            "internalType": "uint32[]"
           }
         ]
       },
@@ -250,24 +250,14 @@
             "internalType": "uint16"
           },
           {
-            "name": "monsterIndex1",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex2",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex3",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
             "name": "nextRooms",
             "type": "uint32[6]",
             "internalType": "uint32[6]"
+          },
+          {
+            "name": "roomData",
+            "type": "bytes",
+            "internalType": "bytes"
           }
         ]
       }
@@ -374,9 +364,9 @@
         "internalType": "contract Character"
       },
       {
-        "name": "tokens",
+        "name": "cards",
         "type": "tuple[]",
-        "internalType": "struct Token[]",
+        "internalType": "struct Cards[]",
         "components": [
           {
             "name": "deck",
@@ -384,9 +374,9 @@
             "internalType": "contract IDeck"
           },
           {
-            "name": "tokenId",
-            "type": "uint96",
-            "internalType": "uint96"
+            "name": "actionTypes",
+            "type": "uint32[]",
+            "internalType": "uint32[]"
           }
         ]
       },
@@ -409,9 +399,9 @@
         "internalType": "contract Character"
       },
       {
-        "name": "tokens",
+        "name": "cards",
         "type": "tuple[]",
-        "internalType": "struct Token[]",
+        "internalType": "struct Cards[]",
         "components": [
           {
             "name": "deck",
@@ -419,9 +409,9 @@
             "internalType": "contract IDeck"
           },
           {
-            "name": "tokenId",
-            "type": "uint96",
-            "internalType": "uint96"
+            "name": "actionTypes",
+            "type": "uint32[]",
+            "internalType": "uint32[]"
           }
         ]
       },
@@ -461,24 +451,14 @@
             "internalType": "uint16"
           },
           {
-            "name": "monsterIndex1",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex2",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex3",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
             "name": "nextRooms",
             "type": "uint32[6]",
             "internalType": "uint32[6]"
+          },
+          {
+            "name": "roomData",
+            "type": "bytes",
+            "internalType": "bytes"
           }
         ]
       }
@@ -748,24 +728,14 @@
             "internalType": "uint16"
           },
           {
-            "name": "monsterIndex1",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex2",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex3",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
             "name": "nextRooms",
             "type": "uint32[6]",
             "internalType": "uint32[6]"
+          },
+          {
+            "name": "roomData",
+            "type": "bytes",
+            "internalType": "bytes"
           }
         ]
       }
@@ -1048,24 +1018,14 @@
             "internalType": "uint16"
           },
           {
-            "name": "monsterIndex1",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex2",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "monsterIndex3",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
             "name": "nextRooms",
             "type": "uint32[6]",
             "internalType": "uint32[6]"
+          },
+          {
+            "name": "roomData",
+            "type": "bytes",
+            "internalType": "bytes"
           }
         ]
       }
@@ -1142,11 +1102,6 @@
   {
     "type": "error",
     "name": "InvalidSignatureError",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidTokenOwnerError",
     "inputs": []
   },
   {

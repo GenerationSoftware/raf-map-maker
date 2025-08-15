@@ -188,9 +188,9 @@
     "name": "createDeck",
     "inputs": [
       {
-        "name": "tokens",
+        "name": "cards",
         "type": "tuple[]",
-        "internalType": "struct Token[]",
+        "internalType": "struct Cards[]",
         "components": [
           {
             "name": "deck",
@@ -198,13 +198,26 @@
             "internalType": "contract IDeck"
           },
           {
-            "name": "tokenId",
-            "type": "uint96",
-            "internalType": "uint96"
+            "name": "actionTypes",
+            "type": "uint32[]",
+            "internalType": "uint32[]"
           }
         ]
       }
     ],
+    "outputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createDeck",
+    "inputs": [],
     "outputs": [
       {
         "name": "deckId",
@@ -276,6 +289,35 @@
       }
     ],
     "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "discardAndDrawHand",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "count",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "random",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "drawnCards",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {

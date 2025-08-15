@@ -116,15 +116,19 @@ export class MapValidator {
       valid = false;
     }
 
-    // Validate monster index
+    // Validate roomData based on room type
     if (node.roomType === 1) { // BATTLE
-      if (typeof node.monsterIndex1 !== 'number' || node.monsterIndex1 < 0 || node.monsterIndex1 > 65535) {
-        this.errors.push(`${path}: BATTLE rooms must have monsterIndex1 as a number between 0 and 65535`);
+      if (!node.roomData || typeof node.roomData !== 'object') {
+        this.errors.push(`${path}: BATTLE rooms must have roomData object`);
+        valid = false;
+      } else if (!('monsterIndex1' in node.roomData) || typeof node.roomData.monsterIndex1 !== 'number' || 
+                 node.roomData.monsterIndex1 < 0 || node.roomData.monsterIndex1 > 65535) {
+        this.errors.push(`${path}: BATTLE rooms must have roomData.monsterIndex1 as a number between 0 and 65535`);
         valid = false;
       }
     } else if (node.roomType === 0 || node.roomType === 2) { // NULL or GOAL
-      if (node.monsterIndex1 !== null) {
-        this.errors.push(`${path}: NULL and GOAL rooms must have monsterIndex1 = null`);
+      if (node.roomData !== null) {
+        this.errors.push(`${path}: NULL and GOAL rooms must have roomData = null`);
         valid = false;
       }
     }
